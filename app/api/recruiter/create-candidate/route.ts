@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRecruiterSession } from '@/lib/auth'
 import { createCandidate, getCandidate } from '@/lib/db'
+import { sendAccessCodeEmail } from '@/lib/email'
 import { v4 as uuid } from 'uuid'
 
 export async function POST(req: NextRequest) {
@@ -12,5 +13,6 @@ export async function POST(req: NextRequest) {
   const existing = await getCandidate(code)
   if (existing) return NextResponse.json({ error: 'Code already in use' }, { status: 400 })
   await createCandidate({ code, name, email })
-  return NextResponse.json({ ok: true, code })
+  const emailSent = await sendAccessCodeEmail(email, name, code)
+  return NextResponse.json({ ok: true, code, emailSent })
 }

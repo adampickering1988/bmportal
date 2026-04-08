@@ -244,7 +244,7 @@ function AddCandidateTab({ onAdded }: { onAdded: () => void }) {
   const [customCode, setCustomCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<{ code: string; name: string } | null>(null)
+  const [result, setResult] = useState<{ code: string; name: string; email: string; emailSent: boolean } | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -257,7 +257,7 @@ function AddCandidateTab({ onAdded }: { onAdded: () => void }) {
       })
       const data = await res.json()
       if (res.ok) {
-        setResult({ code: data.code, name })
+        setResult({ code: data.code, name, email, emailSent: data.emailSent })
         setName(''); setEmail(''); setCustomCode('')
         onAdded()
       } else {
@@ -274,6 +274,11 @@ function AddCandidateTab({ onAdded }: { onAdded: () => void }) {
           <div className="font-bold text-[#1E8449] mb-2">✓ Candidate created</div>
           <div className="text-sm text-[#1E8449]"><strong>{result.name}</strong> can log in with code:</div>
           <div className="font-mono font-black text-2xl text-[#0D1B2A] mt-2 tracking-widest">{result.code}</div>
+          {result.emailSent ? (
+            <div className="text-sm text-[#1E8449] mt-3">✉️ Access code emailed to <strong>{result.email}</strong></div>
+          ) : (
+            <div className="text-sm text-[#6B7A8D] mt-3">⚠ Email not sent — share the code manually</div>
+          )}
           <button onClick={() => setResult(null)} className="mt-3 text-xs text-[#6B7A8D] hover:underline">Add another →</button>
         </div>
       )}
