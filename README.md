@@ -1,6 +1,6 @@
-# Brand X — Assessment Portal
+# Ideal Direct — Brand Manager Recruitment Portal
 
-A Next.js recruitment portal for the Brand X Amazon Account Manager assessment.
+A Next.js recruitment portal for the Ideal Direct Amazon Account Manager assessment.
 
 ## Quick Deploy to Vercel
 

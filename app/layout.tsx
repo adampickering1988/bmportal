@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Brand X Assessment Portal | Ideal Direct',
-  description: 'Amazon Account Manager Assessment',
+  title: 'Ideal Direct Brand Manager Recruitment Portal',
+  description: 'Brand Manager Recruitment Assessment',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

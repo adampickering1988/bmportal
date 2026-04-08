@@ -32,7 +32,7 @@ export default function RecruiterLogin() {
           <div className="text-center mb-10">
             <div className="text-xs font-bold tracking-[0.25em] text-[#C0392B] uppercase mb-2">Ideal Direct</div>
             <h1 className="text-3xl font-black text-white">Recruiter Portal</h1>
-            <p className="text-[#6B7A8D] text-sm mt-2">Brand X Assessment · Internal access only</p>
+            <p className="text-[#6B7A8D] text-sm mt-2">Brand Manager Recruitment · Internal access only</p>
           </div>
           <div className="bg-[#1A2E45] rounded-xl p-8 border border-[#243E59]">
             <form onSubmit={handleSubmit} className="space-y-4">

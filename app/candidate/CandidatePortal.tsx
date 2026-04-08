@@ -30,7 +30,7 @@ export default function CandidatePortal({
             <div className="flex items-center gap-4">
               <div>
                 <div className="text-[10px] font-bold tracking-widest text-[#C0392B] uppercase">Ideal Direct</div>
-                <div className="text-white font-black text-lg leading-tight">Brand X Assessment</div>
+                <div className="text-white font-black text-lg leading-tight">Ideal Direct Assessment</div>
               </div>
             </div>
             <div className="flex items-center gap-6">
@@ -94,7 +94,7 @@ function InstructionsTab({ onNext }: { onNext: () => void }) {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="bg-[#0D1B2A] rounded-xl p-8 text-white">
         <div className="text-xs font-bold tracking-widest text-[#C0392B] uppercase mb-3">Amazon Account Manager Assessment</div>
-        <h1 className="text-3xl font-black mb-2">Brand X</h1>
+        <h1 className="text-3xl font-black mb-2">Ideal Direct</h1>
         <p className="text-[#9BAAB8] text-base">Health Supplements · Amazon UK · 90 minutes</p>
       </div>
 
@@ -177,7 +177,7 @@ function ListingsTab() {
         <iframe
           src="/api/files/listings"
           className="w-full h-full border-none"
-          title="Brand X Product Listings"
+          title="Product Listings"
         />
       </div>
     </div>

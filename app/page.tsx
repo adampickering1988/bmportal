@@ -38,7 +38,7 @@ export default function HomePage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <div className="text-xs font-bold tracking-[0.25em] text-[#C0392B] uppercase mb-2">Ideal Direct</div>
-            <h1 className="text-4xl font-black text-white tracking-tight">Brand X</h1>
+            <h1 className="text-3xl font-black text-white tracking-tight">Brand Manager Recruitment Portal</h1>
             <p className="text-[#6B7A8D] text-sm mt-2 tracking-wide">Amazon Account Manager Assessment</p>
           </div>
           <div className="bg-[#1A2E45] rounded-xl p-8 border border-[#243E59]">

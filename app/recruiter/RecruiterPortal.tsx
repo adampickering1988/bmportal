@@ -28,7 +28,7 @@ export default function RecruiterPortal({
           <div className="flex items-center justify-between h-16">
             <div>
               <div className="text-[10px] font-bold tracking-widest text-[#C0392B] uppercase">Ideal Direct · Internal</div>
-              <div className="text-white font-black text-lg">Brand X — Recruiter Portal</div>
+              <div className="text-white font-black text-lg">Ideal Direct — Recruiter Portal</div>
             </div>
             <button onClick={logout} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
               Log out
