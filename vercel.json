@@ -2,9 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "env": {
-    "JWT_SECRET": "@jwt_secret",
-    "RECRUITER_PASSWORD": "@recruiter_password"
-  }
+  "installCommand": "npm install"
 }
