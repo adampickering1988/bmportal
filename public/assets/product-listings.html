@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand X — Amazon Listing Review | Assessment Task</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --az-orange: #FF9900; --az-dark: #131921; --az-mid: #232F3E;
+    --az-blue: #007185; --az-link: #0066c0; --az-red: #CC0C39;
+    --az-green: #007600; --star: #FF9900; --border: #D5D9D9;
+    --bg: #EAEDED; --white: #FFFFFF; --text: #0F1111; --sub: #565959;
+    --prime: #00A8E1; --font: Arial, sans-serif;
+  }
+  body { background:var(--bg); font-family:var(--font); color:var(--text); font-size:14px; line-height:1.4; }
+
+  .assessment-bar {
+    background:#0D1B2A; color:#fff; text-align:center; padding:10px 20px;
+    font-size:13px; position:sticky; top:0; z-index:1000; border-bottom:3px solid #C0392B;
+  }
+  .assessment-bar strong { color:#C0392B; }
+  .assessment-bar em { color:#8C9BAB; margin:0 10px; font-style:normal; }
+
+  .amz-nav {
+    background:var(--az-mid); padding:8px 18px; display:flex; align-items:center; gap:12px;
+  }
+  .amz-logo { font-size:24px; font-weight:900; color:var(--az-orange); letter-spacing:-1px; margin-right:8px; }
+  .amz-logo span { color:#fff; font-size:10px; font-weight:400; display:block; line-height:1; }
+  .amz-search { flex:1; display:flex; max-width:580px; border-radius:4px; overflow:hidden; border:2px solid var(--az-orange); }
+  .amz-search input { flex:1; border:none; padding:6px 10px; font-size:14px; outline:none; background:#fff; }
+  .amz-search-btn { background:var(--az-orange); border:none; padding:0 14px; font-size:16px; cursor:default; }
+
+  .listing-tabs {
+    background:var(--az-dark); display:flex; padding:0 18px; gap:4px; border-bottom:2px solid var(--az-orange);
+  }
+  .tab-btn {
+    background:none; border:none; color:#ccc; padding:10px 18px; cursor:pointer; font-size:13px;
+    border-bottom:3px solid transparent; margin-bottom:-2px; font-family:var(--font); transition:all 0.15s;
+  }
+  .tab-btn:hover { color:#fff; background:rgba(255,255,255,0.06); }
+  .tab-btn.active { color:#fff; border-bottom-color:var(--az-orange); font-weight:700; }
+
+  .listing-page { display:none; padding:16px 18px; max-width:1120px; margin:0 auto; }
+  .listing-page.active { display:block; }
+
+  .task-bar {
+    background:#0D1B2A; color:#fff; padding:8px 14px; border-radius:4px 4px 0 0;
+    font-size:12px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .sku-tag { background:#C0392B; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:700; }
+
+  .breadcrumb { font-size:12px; color:var(--az-link); margin:12px 0 14px; }
+  .breadcrumb em { color:var(--sub); margin:0 4px; font-style:normal; }
+
+  .listing-grid { display:grid; grid-template-columns:340px 1fr 240px; gap:18px; align-items:start; }
+
+  /* Images */
+  .listing-images {}
+  .main-image {
+    background:#fff; border:1px solid var(--border); border-radius:4px; width:100%;
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    margin-bottom:8px; overflow:hidden; position:relative;
+  }
+  .img-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:4px; }
+  .thumb {
+    aspect-ratio:1; border:1px solid var(--border); border-radius:3px; background:#f8f8f8;
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; cursor:default;
+    overflow:hidden; position:relative;
+  }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .thumb.active { border-color:var(--az-orange); border-width:2px; }
+
+  /* Product info */
+  .product-title { font-size:20px; font-weight:400; line-height:1.35; margin-bottom:8px; }
+  .brand-line { font-size:13px; color:var(--az-link); margin-bottom:8px; }
+  .rating-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; }
+  .stars { color:var(--star); letter-spacing:-1px; font-size:15px; }
+  .review-count { color:var(--az-link); }
+  .divider { border:none; border-top:1px solid var(--border); margin:12px 0; }
+
+  .bullets h4 { font-size:14px; font-weight:700; margin-bottom:8px; }
+  .bullets ul { list-style:none; }
+  .bullets li { padding:4px 0 4px 18px; position:relative; font-size:13px; line-height:1.5; }
+  .bullets li::before { content:"▸"; position:absolute; left:0; color:var(--az-orange); font-size:11px; top:6px; }
+
+  .badge-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .badge { font-size:11px; padding:3px 8px; border-radius:2px; }
+  .badge.bsr { background:#f0f2f2; color:var(--text); border:1px solid var(--border); }
+  .badge.choice { background:#232F3E; color:#fff; }
+  .badge.hot { background:var(--az-red); color:#fff; font-weight:700; }
+
+  /* Description */
+  .desc-section { background:#fff; border:1px solid var(--border); border-radius:4px; padding:18px; margin-top:18px; }
+  .desc-section h4 { font-size:16px; font-weight:700; margin-bottom:12px; }
+  .desc-text { font-size:13px; line-height:1.7; }
+
+  /* A+ mock */
+  .aplus { margin-top:14px; }
+  .aplus-banner {
+    background:#fff; border:1px solid var(--border); border-radius:4px;
+    overflow:hidden; margin-bottom:10px;
+  }
+  .aplus-hdr {
+    padding:14px 18px; font-size:14px; font-weight:700;
+    display:flex; align-items:center; gap:10px;
+  }
+  .aplus-body { padding:0 18px 16px; font-size:13px; line-height:1.65; color:#333; }
+  .aplus-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:12px 0; }
+  .aplus-img-box {
+    border-radius:4px; overflow:hidden; aspect-ratio:4/3;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:#fff; font-weight:700; text-align:center; padding:10px;
+  }
+  .aplus-compare th { background:#f0f2f2; text-align:left; padding:8px 10px; font-size:12px; font-weight:700; border:1px solid var(--border); }
+  .aplus-compare td { padding:8px 10px; font-size:12px; border:1px solid var(--border); }
+  .aplus-compare { width:100%; border-collapse:collapse; margin-top:8px; }
+  .tick { color:var(--az-green); font-size:14px; }
+  .cross { color:var(--az-red); font-size:14px; }
+
+  /* Buy box */
+  .buy-box { background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px; position:sticky; top:56px; }
+  .price { font-size:26px; font-weight:400; color:var(--az-red); margin-bottom:4px; }
+  .price sup { font-size:14px; vertical-align:top; margin-top:5px; }
+  .price-sub { font-size:12px; color:var(--sub); margin-bottom:10px; }
+  .in-stock { color:var(--az-green); font-size:16px; font-weight:700; margin-bottom:10px; }
+  .atc { display:block; width:100%; background:var(--az-orange); border:none; border-radius:20px; padding:10px; font-size:14px; cursor:default; margin-bottom:8px; font-family:var(--font); box-shadow:0 2px 5px rgba(213,160,0,.4); }
+  .bni { display:block; width:100%; background:#FFD814; border:none; border-radius:20px; padding:10px; font-size:14px; cursor:default; font-family:var(--font); }
+  .sold-by { font-size:12px; color:var(--sub); margin-top:8px; }
+  .sold-by a { color:var(--az-link); text-decoration:none; }
+
+  /* Variation */
+  .var-section { margin:10px 0; }
+  .var-label { font-size:13px; font-weight:700; margin-bottom:6px; }
+  .var-opts { display:flex; gap:6px; flex-wrap:wrap; }
+  .var-opt { padding:5px 14px; border:1px solid var(--border); border-radius:4px; font-size:12px; cursor:default; background:#fff; }
+  .var-opt.sel { border-color:var(--az-orange); border-width:2px; background:#FFF8ED; font-weight:700; }
+
+  /* Product detail table */
+  .pd-table { margin-top:14px; }
+  .pd-table table { width:100%; border-collapse:collapse; font-size:13px; }
+  .pd-table td { padding:6px 8px; border-bottom:1px solid #f2f2f2; vertical-align:top; }
+  .pd-table td:first-child { width:190px; color:var(--sub); font-weight:700; }
+  .pd-table td a { color:var(--az-link); text-decoration:none; }
+
+  .kw-row { margin-top:14px; background:#fff; border:1px solid var(--border); border-radius:4px; padding:12px 14px; }
+  .kw-row h5 { font-size:13px; font-weight:700; margin-bottom:8px; color:var(--text); }
+  .kw-row table { width:100%; border-collapse:collapse; font-size:12px; }
+  .kw-row td { padding:4px 6px; border-bottom:1px solid #f5f5f5; }
+  .kw-row td:first-child { width:180px; color:var(--sub); font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="assessment-bar">
+  <strong>BRAND X — AMAZON ACCOUNT MANAGER ASSESSMENT</strong>
+  <em>|</em>
+  Review all three product listings. Identify issues and include recommendations in your written analysis.
+  <em>|</em>
+  <strong>Task time: 90 minutes total</strong>
+</div>
+
+<div class="amz-nav">
+  <div class="amz-logo">amazon<span>.co.uk</span></div>
+  <div class="amz-search">
+    <input type="text" value="brand x health supplements" readonly>
+    <button class="amz-search-btn">🔍</button>
+  </div>
+</div>
+
+<div class="listing-tabs">
+  <button class="tab-btn active" onclick="show(0,this)">BX-009 — Turmeric Curcumin 90ct</button>
+  <button class="tab-btn" onclick="show(1,this)">BX-011 — B Complex 60ct</button>
+  <button class="tab-btn" onclick="show(2,this)">BX-012 — Zinc 25mg 90ct</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     LISTING 1 — BX-009 TURMERIC
+     SUBTLE ISSUES:
+     1. Title stuffed: 'Turmeric' x4 in natural-looking title
+     2. Bullet 1: totally generic ("High Quality") no dose/form/specificity
+     3. Bullets 4+5: exist but are pure filler / legally risky phrasing
+     4. A+ present but comparison table compares vs "standard turmeric" not named — oddly vague;
+        also no brand story or usage module — only 2 of expected 5 modules
+     5. Backend KW: field populated but duplicates title terms; short at 68 bytes
+     6. Category: Vitamins & Dietary Supplements — should be Herbal Supplements
+     7. Description makes an unauthorised health claim: "treats joint inflammation"
+     ══════════════════════════════════════════════════════ -->
+<div class="listing-page active" id="l0">
+  <div class="task-bar">
+    <span>Listing 1 of 3 — Note any issues you identify across this listing</span>
+    <span class="sku-tag">BX-009 · ASIN B0XXXXX009</span>
+  </div>
+  <div class="breadcrumb" style="margin-top:12px;">
+    Health, Household &amp; Baby Care <em>›</em> Vitamins, Minerals &amp; Supplements <em>›</em> Vitamins &amp; Dietary Supplements <em>›</em> Turmeric
+  </div>
+
+  <div class="listing-grid">
+    <div class="listing-images">
+      <div class="main-image">
+        <div style="width:82%;height:82%;border-radius:8px;background:linear-gradient(145deg,#F5A623,#D4811A);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:14px;">
+          <div style="font-size:36px;margin-bottom:8px;">🌿</div>
+          <div style="font-size:17px;font-weight:900;letter-spacing:0.5px;">TURMERIC<br>CURCUMIN</div>
+          <div style="font-size:12px;margin-top:6px;opacity:0.9;">500mg with BioPerine</div>
+          <div style="font-size:11px;margin-top:4px;opacity:0.75;">90 Capsules · Brand X</div>
+        </div>
+      </div>
+      <div class="img-grid">
+        <div class="thumb active" style="background:#FFF3E0;"><span style="font-size:9px;color:#aaa;">Main</span></div>
+        <div class="thumb" style="background:#FFF8F0;"><span style="font-size:9px;color:#aaa;">Lifestyle</span></div>
+        <div class="thumb" style="background:#FFF8F0;"><span style="font-size:9px;color:#aaa;">Lifestyle</span></div>
+        <div class="thumb" style="background:#f8f5f0;"><span style="font-size:9px;color:#aaa;">Pack shot</span></div>
+        <div class="thumb" style="background:#fefcf8;"><span style="font-size:9px;color:#aaa;">Suppl. facts</span></div>
+        <div class="thumb" style="background:#fefcf8;"><span style="font-size:9px;color:#aaa;">Ingredients</span></div>
+        <div class="thumb" style="background:#fff8f0;"><span style="font-size:9px;color:#aaa;">Lifestyle 2</span></div>
+      </div>
+
+      <div class="pd-table">
+        <table>
+          <tr><td>Brand</td><td>Brand X</td></tr>
+          <tr><td>Form</td><td>Capsule</td></tr>
+          <tr><td>Count</td><td>90</td></tr>
+          <tr><td>Weight</td><td>85g</td></tr>
+          <tr><td>Category</td><td><a href="#">Vitamins &amp; Dietary Supplements</a></td></tr>
+          <tr><td>Best Sellers Rank</td><td>#8,412 in Health &amp; Personal Care<br><span style="color:var(--az-link);font-size:12px;">#342 in Vitamins &amp; Dietary Supplements</span></td></tr>
+          <tr><td>First Available</td><td>14 January 2024</td></tr>
+          <tr><td>ASIN</td><td>B0XXXXX009</td></tr>
+        </table>
+      </div>
+
+      <div class="kw-row">
+        <h5>Search Terms (Backend Keywords)</h5>
+        <table>
+          <tr><td>Entered terms</td><td style="color:#555;">turmeric supplement curcumin capsules bioperine joint support anti inflammatory turmeric tablets</td></tr>
+          <tr><td>Bytes used</td><td><strong>68 / 250</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="product-info" style="min-width:0;">
+      <div class="brand-line">Brand: <a href="#">Brand X</a></div>
+
+      <!-- ISSUE 1: 'Turmeric' appears 4x — stuffed but looks plausible at speed -->
+      <h1 class="product-title">Brand X Turmeric Curcumin Capsules 500mg — High Absorption Turmeric with BioPerine Black Pepper — 90 Turmeric Capsules for Joint &amp; Inflammation Support — Turmeric Supplement UK</h1>
+
+      <div class="rating-row">
+        <div class="stars">★★★☆☆</div>
+        <span style="color:var(--sub);font-size:13px;">3.2</span>
+        <a class="review-count" href="#">18 ratings</a>
+        <span style="font-size:12px;color:var(--sub);">| 12 answered questions</span>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge bsr">#8,412 in Health &amp; Personal Care</span>
+      </div>
+
+      <hr class="divider">
+      <div class="bullets">
+        <h4>About this item</h4>
+        <ul>
+          <!-- ISSUE 2: Bullet 1 totally generic — 'High Quality', no dose, no form, no standardisation -->
+          <li>HIGH QUALITY TURMERIC — our premium turmeric supplement is made with high quality turmeric extract, carefully selected to support your daily health and wellbeing needs</li>
+          <!-- OK-ish bullets -->
+          <li>500MG TURMERIC WITH 10MG BIOPERINE — each capsule delivers 500mg standardised turmeric curcumin extract paired with 10mg BioPerine black pepper extract to enhance absorption and bioavailability</li>
+          <li>JOINT &amp; MOBILITY SUPPORT — turmeric has been used for centuries to support comfortable joint movement and flexibility, making it ideal for active adults and those with an active lifestyle</li>
+          <!-- ISSUE 3: Bullet 4 makes a vague unauthorised medical-style claim -->
+          <li>ANTI-INFLAMMATORY PROPERTIES — our turmeric capsules work to reduce and treat joint inflammation, helping your body fight the root causes of discomfort and chronic pain</li>
+          <!-- ISSUE 3 cont: Bullet 5 is filler with no purchase rationale -->
+          <li>BRAND X QUALITY — Brand X is committed to quality. We make supplements. Our products are made in a facility. Take one capsule per day.</li>
+        </ul>
+      </div>
+
+      <hr class="divider">
+
+      <!-- A+: 2 modules only (no brand story, no usage guide) — looks like A+ but incomplete -->
+      <div class="desc-section">
+        <h4>From the brand</h4>
+        <div class="aplus">
+          <div class="aplus-banner">
+            <div class="aplus-hdr" style="background:linear-gradient(90deg,#F5A623,#D4811A);color:#fff;">
+              🌿 &nbsp; Why Choose Brand X Turmeric?
+            </div>
+            <div class="aplus-body">
+              <div class="aplus-2col">
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#F5A623,#C97B1A);">High Absorption<br>Formula</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">Our turmeric formula is designed for maximum bioavailability using BioPerine technology.</p>
+                </div>
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#E8891A,#B5690F);">Natural<br>Ingredients</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">Made with carefully sourced turmeric extract and natural pepper extract.</p>
+                </div>
+              </div>
+              <!-- ISSUE 4: Comparison table has no named competitor and the "standard turmeric" row is meaningless -->
+              <table class="aplus-compare">
+                <tr>
+                  <th>Feature</th>
+                  <th>Brand X Turmeric</th>
+                  <th>Standard Turmeric</th>
+                </tr>
+                <tr><td>BioPerine included</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+                <tr><td>High absorption</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+                <tr><td>Premium quality</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+              </table>
+              <p style="font-size:11px;color:#999;margin-top:6px;">* Compared to standard non-enhanced turmeric products</p>
+            </div>
+          </div>
+          <!-- Note: brand story module absent, usage guide absent -->
+        </div>
+      </div>
+
+      <div class="desc-section" style="margin-top:12px;">
+        <h4>Product description</h4>
+        <!-- ISSUE 5: Unauthorised health claim "treats joint inflammation" + "proven" language -->
+        <div class="desc-text">
+          Brand X Turmeric Curcumin 500mg — 90 Capsules. Our scientifically proven turmeric formula has been clinically tested to treat joint inflammation and reduce the symptoms of arthritis. Each capsule contains 500mg of turmeric curcumin with BioPerine for superior absorption. Suitable for vegans and vegetarians. Free from gluten, dairy and soya. Take one capsule daily with food. Store below 25°C.
+        </div>
+      </div>
+    </div>
+
+    <div class="buy-box">
+      <div class="price"><sup>£</sup>9<sup>.99</sup></div>
+      <div class="price-sub">FREE delivery on orders over £25</div>
+      <div class="in-stock">In Stock</div>
+      <button class="atc">Add to Basket</button>
+      <button class="bni">Buy Now</button>
+      <div class="sold-by">Sold by <a href="#">Brand X Official</a> · Fulfilled by Amazon</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     LISTING 2 — BX-011 B COMPLEX
+     SUBTLE ISSUES:
+     1. Title: 'Vitamins' repeated 3x, keyword-stuffed but less obvious
+     2. Bullet 2: "Good for health" — non-compliant vague claim
+     3. Bullet 5: exists but is a near-repeat of bullet 4 — wasted slot
+     4. A+ present and looks reasonable but comparison chart compares
+        to "other brands" — no specificity, and charts wrong product type (energy drinks shown)
+     5. Variations: only 60ct shown — no 120ct or 180ct despite listing mentioning "multi-month supply"
+     6. Category: correct but sub-category missing (B Vitamins vs general Vitamins)
+     7. Backend KW: duplicates title, misses high-volume synonyms
+     ══════════════════════════════════════════════════════ -->
+<div class="listing-page" id="l1">
+  <div class="task-bar">
+    <span>Listing 2 of 3 — Note any issues you identify across this listing</span>
+    <span class="sku-tag">BX-011 · ASIN B0XXXXX011</span>
+  </div>
+  <div class="breadcrumb" style="margin-top:12px;">
+    Health, Household &amp; Baby Care <em>›</em> Vitamins, Minerals &amp; Supplements <em>›</em> Vitamins &amp; Dietary Supplements <em>›</em> <a href="#" style="color:var(--az-link);">B Vitamins</a>
+  </div>
+
+  <div class="listing-grid">
+    <div class="listing-images">
+      <div class="main-image">
+        <div style="width:82%;height:82%;border-radius:8px;background:linear-gradient(145deg,#1A3A5C,#2471A3);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:14px;">
+          <div style="font-size:36px;margin-bottom:8px;">💊</div>
+          <div style="font-size:15px;font-weight:900;letter-spacing:0.8px;">VITAMIN B<br>COMPLEX</div>
+          <div style="font-size:11px;margin-top:6px;opacity:0.85;">60 Tablets · All 8 B Vitamins</div>
+          <div style="font-size:10px;margin-top:4px;opacity:0.7;">Brand X</div>
+        </div>
+      </div>
+      <div class="img-grid">
+        <div class="thumb active" style="background:#EAF2FB;"><span style="font-size:9px;color:#aaa;">Main</span></div>
+        <div class="thumb" style="background:#EAF2FB;"><span style="font-size:9px;color:#aaa;">Lifestyle</span></div>
+        <div class="thumb" style="background:#f0f4f8;"><span style="font-size:9px;color:#aaa;">Suppl. facts</span></div>
+        <div class="thumb" style="background:#f5f8fb;"><span style="font-size:9px;color:#aaa;">Infographic</span></div>
+        <div class="thumb" style="background:#edf2f7;"><span style="font-size:9px;color:#aaa;">Ingredients</span></div>
+        <div class="thumb" style="background:#f0f5fa;"><span style="font-size:9px;color:#aaa;">Lifestyle 2</span></div>
+        <div class="thumb" style="background:#eaf1f8;"><span style="font-size:9px;color:#aaa;">Pack shot</span></div>
+      </div>
+
+      <!-- ISSUE: variation — only 60ct, mentions "multi-month supply" in title but 60ct only -->
+      <div class="var-section" style="margin-top:14px;">
+        <div class="var-label">Size:</div>
+        <div class="var-opts">
+          <div class="var-opt sel">60 Tablets</div>
+        </div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px;">No other sizes available</div>
+      </div>
+
+      <div class="pd-table">
+        <table>
+          <tr><td>Brand</td><td>Brand X</td></tr>
+          <tr><td>Form</td><td>Tablet</td></tr>
+          <tr><td>Count</td><td>60</td></tr>
+          <tr><td>Category</td><td><a href="#">Vitamins &amp; Dietary Supplements &gt; B Vitamins</a></td></tr>
+          <tr><td>Best Sellers Rank</td><td>#14,211 in Health &amp; Personal Care<br><span style="color:var(--az-link);font-size:12px;">#1,842 in B Vitamins</span></td></tr>
+          <tr><td>First Available</td><td>3 March 2024</td></tr>
+          <tr><td>ASIN</td><td>B0XXXXX011</td></tr>
+        </table>
+      </div>
+
+      <div class="kw-row">
+        <h5>Search Terms (Backend Keywords)</h5>
+        <table>
+          <tr><td>Entered terms</td><td style="color:#555;">vitamin b complex b12 supplement energy tablets b vitamins uk daily b complex tablets</td></tr>
+          <tr><td>Bytes used</td><td><strong>94 / 250</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="product-info" style="min-width:0;">
+      <div class="brand-line">Brand: <a href="#">Brand X</a></div>
+
+      <!-- ISSUE 1: 'Vitamins' 3x, clunky repetition — 'Energy' mentioned twice -->
+      <h1 class="product-title">Brand X Vitamin B Complex Tablets — Complete B Vitamins B1 B2 B3 B5 B6 B7 B9 B12 — Energy Vitamins for Men &amp; Women — 60 B Complex Vitamins Tablets UK Energy Supplement</h1>
+
+      <div class="rating-row">
+        <div class="stars">★★★★☆</div>
+        <span style="color:var(--sub);font-size:13px;">4.1</span>
+        <a class="review-count" href="#">94 ratings</a>
+        <span style="font-size:12px;color:var(--sub);">| 28 answered questions</span>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge bsr">#14,211 in Health &amp; Personal Care</span>
+      </div>
+
+      <hr class="divider">
+      <div class="bullets">
+        <h4>About this item</h4>
+        <ul>
+          <li>COMPLETE B COMPLEX — contains all 8 essential B vitamins in one daily tablet, including B1 Thiamine, B2 Riboflavin, B3 Niacin, B5 Pantothenic Acid, B6, B7 Biotin, B9 Folic Acid and B12 Methylcobalamin</li>
+          <!-- ISSUE 2: Non-compliant vague wellness claim — "good for health" -->
+          <li>GOOD FOR HEALTH — our vitamin B complex tablets are good for your health and general wellbeing, supporting a healthy lifestyle when combined with a balanced diet</li>
+          <li>ENERGY &amp; METABOLISM — B vitamins contribute to normal energy-yielding metabolism and the reduction of tiredness and fatigue, supporting you through busy days</li>
+          <li>SUITABLE FOR VEGETARIANS — our B complex formula is free from artificial additives, gluten-free and suitable for vegetarians and vegans</li>
+          <!-- ISSUE 3: Bullet 5 near-repeats bullet 4 — wasted slot -->
+          <li>VEGETARIAN &amp; VEGAN FRIENDLY — our tablets contain no animal-derived ingredients and are produced in a facility that meets GMP manufacturing standards, suitable for vegetarians and vegans</li>
+        </ul>
+      </div>
+
+      <hr class="divider">
+
+      <div class="desc-section">
+        <h4>From the brand</h4>
+        <div class="aplus">
+          <div class="aplus-banner">
+            <div class="aplus-hdr" style="background:linear-gradient(90deg,#1A3A5C,#2471A3);color:#fff;">
+              💊 &nbsp; Brand X B Complex — Complete Daily B Vitamin Support
+            </div>
+            <div class="aplus-body">
+              <div class="aplus-2col">
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#2471A3,#1A5276);">All 8<br>B Vitamins</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">A complete daily supplement providing all 8 essential B vitamins your body needs.</p>
+                </div>
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#1A5276,#0E3554);">Energy &amp;<br>Metabolism</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">B vitamins play a key role in energy metabolism, helping convert food into fuel.</p>
+                </div>
+              </div>
+              <!-- ISSUE 4: Comparison chart compares vs "energy drinks" not vs competing supplements — wrong comparison -->
+              <table class="aplus-compare">
+                <tr>
+                  <th>Feature</th>
+                  <th>Brand X B Complex</th>
+                  <th>Energy Drinks</th>
+                  <th>Coffee</th>
+                </tr>
+                <tr><td>All 8 B vitamins</td><td class="tick">✔</td><td class="cross">✘</td><td class="cross">✘</td></tr>
+                <tr><td>No added sugar</td><td class="tick">✔</td><td class="cross">✘</td><td class="tick">✔</td></tr>
+                <tr><td>Sustained support</td><td class="tick">✔</td><td class="cross">✘</td><td class="cross">✘</td></tr>
+                <tr><td>Vegetarian</td><td class="tick">✔</td><td style="color:var(--sub);font-size:11px;">Varies</td><td class="tick">✔</td></tr>
+              </table>
+              <p style="font-size:11px;color:#999;margin-top:6px;">* Comparative assessment based on general product category characteristics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="desc-section" style="margin-top:12px;">
+        <h4>Product description</h4>
+        <div class="desc-text">
+          Brand X Vitamin B Complex — 60 Tablets. Our comprehensive B vitamin formula provides all 8 essential B vitamins to support energy metabolism, nervous system function, and overall wellbeing. Suitable for vegetarians and vegans. Free from gluten, dairy, artificial colours and flavours. Take one tablet daily with food. Ideal for those with busy lifestyles, individuals on plant-based diets, and anyone looking to support healthy energy levels.
+        </div>
+      </div>
+    </div>
+
+    <div class="buy-box">
+      <div class="price"><sup>£</sup>9<sup>.99</sup></div>
+      <div class="price-sub">FREE delivery on orders over £25</div>
+      <div class="in-stock">In Stock</div>
+      <button class="atc">Add to Basket</button>
+      <button class="bni">Buy Now</button>
+      <div class="sold-by">Sold by <a href="#">Brand X Official</a> · Fulfilled by Amazon</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     LISTING 3 — BX-012 ZINC
+     SUBTLE ISSUES:
+     1. Title: 'Zinc' appears 5x — less obvious because each usage is different
+     2. Bullet 1: no form specified (Zinc Citrate vs Oxide — massive bioavailability difference)
+        and no elemental dose — just says "25mg" which could be compound not elemental
+     3. Bullet 3: pure filler "Suitable for most people"
+     4. Variation: 50ct child exists but is suppressed — shown greyed but not obviously broken,
+        just shows as out of stock with no explanation
+     5. A+ present but no ingredient science (Citrate vs Oxide) which is the key USP
+     6. Backend KW: short and duplicates title — misses citrate/oxide, testosterone, skin/hair
+     7. 18 reviews — visible but looks like a new product, not a problem per se
+        (candidate must infer review velocity issue from BSR vs reviews ratio)
+     ══════════════════════════════════════════════════════ -->
+<div class="listing-page" id="l2">
+  <div class="task-bar">
+    <span>Listing 3 of 3 — Note any issues you identify across this listing</span>
+    <span class="sku-tag">BX-012 · ASIN B0XXXXX012</span>
+  </div>
+  <div class="breadcrumb" style="margin-top:12px;">
+    Health, Household &amp; Baby Care <em>›</em> Vitamins, Minerals &amp; Supplements <em>›</em> Vitamins &amp; Dietary Supplements <em>›</em> <a href="#" style="color:var(--az-link);">Zinc Supplements</a>
+  </div>
+
+  <div class="listing-grid">
+    <div class="listing-images">
+      <div class="main-image">
+        <div style="width:82%;height:82%;border-radius:8px;background:linear-gradient(145deg,#1A472A,#239B56);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:14px;">
+          <div style="font-size:36px;margin-bottom:8px;">🔬</div>
+          <div style="font-size:22px;font-weight:900;letter-spacing:1.5px;">ZINC</div>
+          <div style="font-size:14px;font-weight:700;margin-top:2px;">25mg</div>
+          <div style="font-size:11px;margin-top:6px;opacity:0.85;">90 Tablets · Brand X</div>
+        </div>
+      </div>
+      <div class="img-grid">
+        <div class="thumb active" style="background:#E8F8F0;"><span style="font-size:9px;color:#aaa;">Main</span></div>
+        <div class="thumb" style="background:#E8F8F0;"><span style="font-size:9px;color:#aaa;">Lifestyle</span></div>
+        <div class="thumb" style="background:#EEF8F2;"><span style="font-size:9px;color:#aaa;">Pack shot</span></div>
+        <div class="thumb" style="background:#F0FAF5;"><span style="font-size:9px;color:#aaa;">Suppl. facts</span></div>
+        <div class="thumb" style="background:#E8F5ED;"><span style="font-size:9px;color:#aaa;">Lifestyle 2</span></div>
+        <div class="thumb" style="background:#EFF9F3;"><span style="font-size:9px;color:#aaa;">Infographic</span></div>
+        <div class="thumb" style="background:#EBF8F0;"><span style="font-size:9px;color:#aaa;">Ingredients</span></div>
+      </div>
+
+      <!-- ISSUE: 50ct variation appears as "Currently Unavailable" — suppressed child ASIN -->
+      <div class="var-section" style="margin-top:14px;">
+        <div class="var-label">Count (tablets):</div>
+        <div class="var-opts">
+          <div class="var-opt sel">90ct</div>
+          <div class="var-opt" style="color:var(--sub);background:#f8f8f8;">50ct<br><span style="font-size:10px;color:var(--az-red);">Currently unavailable</span></div>
+        </div>
+      </div>
+
+      <div class="pd-table">
+        <table>
+          <tr><td>Brand</td><td>Brand X</td></tr>
+          <tr><td>Form</td><td>Tablet</td></tr>
+          <tr><td>Count</td><td>90</td></tr>
+          <tr><td>Category</td><td><a href="#">Zinc Supplements</a></td></tr>
+          <tr><td>Best Sellers Rank</td><td>#18,944 in Health &amp; Personal Care<br><span style="color:var(--az-link);font-size:12px;">#2,108 in Zinc Supplements</span></td></tr>
+          <tr><td>Customer reviews</td><td>18 ratings (4.0 ★)</td></tr>
+          <tr><td>First Available</td><td>22 February 2024</td></tr>
+          <tr><td>ASIN</td><td>B0XXXXX012</td></tr>
+        </table>
+      </div>
+
+      <div class="kw-row">
+        <h5>Search Terms (Backend Keywords)</h5>
+        <table>
+          <tr><td>Entered terms</td><td style="color:#555;">zinc tablets zinc supplement high strength immune zinc uk zinc 25mg daily</td></tr>
+          <tr><td>Bytes used</td><td><strong>72 / 250</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="product-info" style="min-width:0;">
+      <div class="brand-line">Brand: <a href="#">Brand X</a></div>
+
+      <!-- ISSUE 1: 'Zinc' appears 5x — distributed to look natural but still keyword-stuffed -->
+      <h1 class="product-title">Brand X Zinc Tablets 25mg — High Strength Zinc Supplement for Immune Support — 90 Zinc Tablets for Men &amp; Women — Daily Zinc Immune &amp; Skin Health Supplement UK</h1>
+
+      <div class="rating-row">
+        <div class="stars">★★★★☆</div>
+        <span style="color:var(--sub);font-size:13px;">4.0</span>
+        <a class="review-count" href="#">18 ratings</a>
+        <span style="font-size:12px;color:var(--sub);">| 5 answered questions</span>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge bsr">#18,944 in Health &amp; Personal Care</span>
+      </div>
+
+      <hr class="divider">
+      <div class="bullets">
+        <h4>About this item</h4>
+        <ul>
+          <!-- ISSUE 2: No form of zinc specified. "25mg zinc" could be compound weight not elemental. No absorption claim. -->
+          <li>HIGH STRENGTH ZINC — each tablet contains 25mg of zinc to support your daily intake, providing a convenient way to meet your zinc requirements</li>
+          <li>IMMUNE SYSTEM SUPPORT — zinc contributes to the normal function of the immune system, helping to maintain your body's natural defences year-round</li>
+          <!-- ISSUE 3: Filler bullet -->
+          <li>SUITABLE FOR MOST PEOPLE — our zinc supplement is suitable for most adults as part of a balanced diet and healthy lifestyle</li>
+          <li>SKIN, HAIR &amp; NAIL HEALTH — zinc contributes to the maintenance of normal hair, skin and nails, making it a versatile daily supplement for complete wellbeing</li>
+          <li>VEGETARIAN &amp; VEGAN — our zinc tablets contain no animal-derived ingredients and are free from gluten, dairy, artificial colours and preservatives</li>
+        </ul>
+      </div>
+
+      <hr class="divider">
+
+      <div class="desc-section">
+        <h4>From the brand</h4>
+        <div class="aplus">
+          <div class="aplus-banner">
+            <div class="aplus-hdr" style="background:linear-gradient(90deg,#1A472A,#239B56);color:#fff;">
+              🔬 &nbsp; Brand X Zinc — Comprehensive Daily Mineral Support
+            </div>
+            <div class="aplus-body">
+              <div class="aplus-2col">
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#239B56,#1A7A42);">Immune<br>Support</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">Zinc contributes to the normal function of the immune system, supporting your body's natural defences.</p>
+                </div>
+                <div>
+                  <div class="aplus-img-box" style="background:linear-gradient(135deg,#1A7A42,#135C31);">Skin &amp; Hair<br>Health</div>
+                  <p style="margin-top:8px;font-size:12px;color:#555;">Zinc contributes to the maintenance of normal skin, hair and nails.</p>
+                </div>
+              </div>
+              <!-- ISSUE 4: No mention of zinc form — the key differentiator (Citrate) is absent from A+ -->
+              <table class="aplus-compare">
+                <tr>
+                  <th>Benefit</th>
+                  <th>Brand X Zinc</th>
+                  <th>No Supplement</th>
+                </tr>
+                <tr><td>Daily zinc intake met</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+                <tr><td>Immune support</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+                <tr><td>Skin &amp; hair support</td><td class="tick">✔</td><td class="cross">✘</td></tr>
+              </table>
+              <p style="font-size:11px;color:#999;margin-top:6px;">* Zinc contributes to normal immune function (EU Regulation 432/2012)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="desc-section" style="margin-top:12px;">
+        <h4>Product description</h4>
+        <div class="desc-text">
+          Brand X Zinc 25mg — 90 Tablets. Our high strength zinc supplement provides 25mg of zinc per tablet to support immune function, skin health, and normal metabolism of macronutrients. Zinc also contributes to the normal function of DNA synthesis and normal cognitive function. Suitable for vegetarians and vegans. Free from gluten, dairy and artificial additives. Take one tablet daily with food. Store in a cool, dry place away from direct sunlight.
+        </div>
+      </div>
+    </div>
+
+    <div class="buy-box">
+      <div class="price"><sup>£</sup>9<sup>.99</sup></div>
+      <div class="price-sub">FREE delivery on orders over £25</div>
+      <div class="in-stock">In Stock</div>
+      <button class="atc">Add to Basket</button>
+      <button class="bni">Buy Now</button>
+      <div class="sold-by">Sold by <a href="#">Brand X Official</a> · Fulfilled by Amazon</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(i, btn) {
+  document.querySelectorAll('.listing-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('l'+i).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
