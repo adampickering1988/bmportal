@@ -1,25 +1,84 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import type { CandidateRecord, Submission } from '@/lib/db'
+import type { CandidateRecord, Submission, TimerState } from '@/lib/db'
+
+function formatTime(secs: number): string {
+  if (secs < 0) secs = 0
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function timerColor(secs: number): { bg: string; text: string; label: string } {
+  if (secs <= 0)        return { bg: 'bg-[#2D1515]',  text: 'text-[#E74C3C]', label: 'Time expired' }
+  if (secs <= 5 * 60)   return { bg: 'bg-[#2D1515]',  text: 'text-[#E74C3C]', label: 'Final minutes' }
+  if (secs <= 15 * 60)  return { bg: 'bg-[#3D2817]',  text: 'text-[#F39C12]', label: 'Time running low' }
+  return                       { bg: 'bg-[#1A2E45]',  text: 'text-white',     label: 'Time remaining' }
+}
 
 export default function CandidatePortal({
   candidate,
-  submissions,
+  submissions: initialSubmissions,
+  timer: initialTimer,
 }: {
   candidate: CandidateRecord
   submissions: Submission[]
+  timer: TimerState
 }) {
   const [activeTab, setActiveTab] = useState<'instructions' | 'listings' | 'data' | 'submit'>('instructions')
+  const [secondsRemaining, setSecondsRemaining] = useState(initialTimer.secondsRemaining)
+  const [expired, setExpired] = useState(initialTimer.expired)
+  const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const router = useRouter()
 
   const hasAds = submissions.some(s => s.task === 'ads')
   const hasListings = submissions.some(s => s.task === 'listings')
 
+  // Local 1-second tick for the visible countdown.
+  useEffect(() => {
+    if (expired) return
+    const id = setInterval(() => {
+      setSecondsRemaining(prev => {
+        if (prev <= 1) {
+          setExpired(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [expired])
+
+  // Periodic server sync — keeps the client in line with server-side time
+  // even after a browser sleep / clock drift, and triggers expiry enforcement.
+  useEffect(() => {
+    let cancelled = false
+    async function poll() {
+      try {
+        const res = await fetch('/api/candidate/timer', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        setSecondsRemaining(data.secondsRemaining)
+        if (data.expired && !expired) {
+          setExpired(true)
+          // Refresh server-rendered data to pick up auto-submitted drafts.
+          router.refresh()
+        }
+      } catch {}
+    }
+    poll()
+    const id = setInterval(poll, 30_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [expired, router])
+
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/')
   }
+
+  const tc = timerColor(secondsRemaining)
 
   return (
     <div className="min-h-screen flex flex-col bg-[#EAEDED]">
@@ -33,7 +92,12 @@ export default function CandidatePortal({
                 <div className="text-white font-black text-lg leading-tight">Ideal Direct Assessment</div>
               </div>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
+              {/* Live countdown */}
+              <div className={`${tc.bg} border border-[#243E59] rounded-lg px-4 py-1.5 text-right`}>
+                <div className={`text-[10px] font-bold uppercase tracking-wider ${tc.text} opacity-80`}>{tc.label}</div>
+                <div className={`font-mono font-black text-xl tabular-nums ${tc.text}`}>{formatTime(secondsRemaining)}</div>
+              </div>
               <div className="text-right hidden sm:block">
                 <div className="text-xs text-[#6B7A8D]">Logged in as</div>
                 <div className="text-white text-sm font-bold">{candidate.name}</div>
@@ -72,6 +136,7 @@ export default function CandidatePortal({
 
       {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+        {expired && <ExpiredBanner onGoToSubmit={() => setActiveTab('submit')} />}
         {activeTab === 'instructions' && <InstructionsTab onNext={() => setActiveTab('listings')} />}
         {activeTab === 'listings'     && <ListingsTab />}
         {activeTab === 'data'         && <DataTab />}
@@ -80,10 +145,37 @@ export default function CandidatePortal({
             hasAds={hasAds}
             hasListings={hasListings}
             submissions={submissions}
+            candidate={candidate}
+            expired={expired}
             onRefresh={() => router.refresh()}
           />
         )}
       </main>
+    </div>
+  )
+}
+
+// ── Expired banner ────────────────────────────────────────────────────────────
+function ExpiredBanner({ onGoToSubmit }: { onGoToSubmit: () => void }) {
+  return (
+    <div className="max-w-3xl mx-auto mb-6 bg-[#2D1515] border-2 border-[#C0392B] rounded-xl p-6 text-white">
+      <div className="flex items-start gap-4">
+        <div className="text-4xl">⏰</div>
+        <div className="flex-1">
+          <div className="font-black text-xl mb-1">Time's up</div>
+          <p className="text-[#E8C8C8] text-sm leading-relaxed mb-3">
+            Your 90-minute window has ended. Any drafts you had typed but not submitted have been
+            auto-submitted in their current state. You can review what was submitted on the
+            Submit Response tab. The recruitment team will be in touch.
+          </p>
+          <button
+            onClick={onGoToSubmit}
+            className="bg-[#C0392B] hover:bg-[#A93226] text-white font-bold py-2 px-5 rounded-lg text-sm transition-colors"
+          >
+            Review submissions →
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -221,14 +313,19 @@ function DataTab() {
 }
 
 // ── Submit Tab ───────────────────────────────────────────────────────────────
-function SubmitTab({ hasAds, hasListings, submissions, onRefresh }: {
-  hasAds: boolean; hasListings: boolean; submissions: Submission[]; onRefresh: () => void
+function SubmitTab({ hasAds, hasListings, submissions, candidate, expired, onRefresh }: {
+  hasAds: boolean
+  hasListings: boolean
+  submissions: Submission[]
+  candidate: CandidateRecord
+  expired: boolean
+  onRefresh: () => void
 }) {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="bg-white rounded-lg border border-[#E8EBF0] p-5">
         <h2 className="font-black text-[#0D1B2A] text-lg mb-1">Submit Your Response</h2>
-        <p className="text-[13px] text-[#6B7A8D]">Submit each task separately. You can type your response directly, upload a document, or both. Submissions are saved immediately.</p>
+        <p className="text-[13px] text-[#6B7A8D]">Submit each task separately. You can type your response directly, upload a document, or both. Drafts are auto-saved as you type — if your time runs out, your latest draft will be submitted automatically.</p>
         <div className="flex gap-4 mt-4">
           <StatusPill done={hasAds}      label="Task 1: Advertising Analysis" />
           <StatusPill done={hasListings} label="Task 2: Listing Quality" />
@@ -240,6 +337,8 @@ function SubmitTab({ hasAds, hasListings, submissions, onRefresh }: {
         title="Task 1 — Advertising Analysis (Sections A, B & C)"
         description="Your analysis of account performance, advertising issues, and the BX-009 root cause diagnosis."
         submitted={submissions.filter(s => s.task === 'ads')}
+        initialDraft={candidate.draftAds || ''}
+        expired={expired}
         onSubmit={onRefresh}
       />
 
@@ -248,6 +347,8 @@ function SubmitTab({ hasAds, hasListings, submissions, onRefresh }: {
         title="Task 2 — Listing Quality Analysis (Section D)"
         description="Your analysis of the three product listings — issues identified and recommendations."
         submitted={submissions.filter(s => s.task === 'listings')}
+        initialDraft={candidate.draftListings || ''}
+        expired={expired}
         onSubmit={onRefresh}
       />
     </div>
@@ -265,20 +366,51 @@ function StatusPill({ done, label }: { done: boolean; label: string }) {
   )
 }
 
-function TaskSubmitForm({ task, title, description, submitted, onSubmit }: {
-  task: 'ads' | 'listings'; title: string; description: string
-  submitted: Submission[]; onSubmit: () => void
+function TaskSubmitForm({ task, title, description, submitted, initialDraft, expired, onSubmit }: {
+  task: 'ads' | 'listings'
+  title: string
+  description: string
+  submitted: Submission[]
+  initialDraft: string
+  expired: boolean
+  onSubmit: () => void
 }) {
-  const [text, setText] = useState('')
+  const [text, setText] = useState(initialDraft)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const fileRef = useRef<HTMLInputElement>(null)
   const hasSub = submitted.length > 0
+  const lastSavedRef = useRef<string>(initialDraft)
+
+  // Debounced auto-save: 1.5s after the last keystroke, save the draft.
+  useEffect(() => {
+    if (expired) return
+    if (text === lastSavedRef.current) return
+    setDraftStatus('saving')
+    const id = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/candidate/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task, content: text }),
+        })
+        if (res.ok) {
+          lastSavedRef.current = text
+          setDraftStatus('saved')
+        } else {
+          setDraftStatus('error')
+        }
+      } catch { setDraftStatus('error') }
+    }, 1500)
+    return () => clearTimeout(id)
+  }, [text, task, expired])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (expired) { setError('Your 90 minutes are up. Submissions are closed.'); return }
     if (!text.trim() && !file) { setError('Please add a written response or upload a file.'); return }
     setError(''); setLoading(true)
     try {
@@ -289,7 +421,8 @@ function TaskSubmitForm({ task, title, description, submitted, onSubmit }: {
       const res = await fetch('/api/submit', { method: 'POST', body: fd })
       const data = await res.json()
       if (res.ok) {
-        setSuccess(true); setText(''); setFile(null)
+        setSuccess(true); setFile(null)
+        lastSavedRef.current = text
         if (fileRef.current) fileRef.current.value = ''
         onSubmit()
       } else {
@@ -328,13 +461,17 @@ function TaskSubmitForm({ task, title, description, submitted, onSubmit }: {
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         <div>
-          <label className="block text-xs font-bold text-[#6B7A8D] uppercase tracking-wider mb-2">Written Response</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-bold text-[#6B7A8D] uppercase tracking-wider">Written Response</label>
+            <DraftStatusBadge status={draftStatus} expired={expired} />
+          </div>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Type your analysis here… Include campaign IDs and specific figures throughout."
             rows={10}
-            className="w-full border border-[#D5D9D9] rounded-lg px-4 py-3 text-[14px] text-[#0F1111] placeholder-[#B0B8C4] focus:outline-none focus:border-[#C0392B] focus:ring-1 focus:ring-[#C0392B] resize-y font-mono leading-relaxed"
+            disabled={expired}
+            className="w-full border border-[#D5D9D9] rounded-lg px-4 py-3 text-[14px] text-[#0F1111] placeholder-[#B0B8C4] focus:outline-none focus:border-[#C0392B] focus:ring-1 focus:ring-[#C0392B] resize-y font-mono leading-relaxed disabled:bg-[#F4F6F8] disabled:cursor-not-allowed"
           />
           <div className="text-xs text-[#6B7A8D] mt-1">{text.length} characters</div>
         </div>
@@ -368,14 +505,29 @@ function TaskSubmitForm({ task, title, description, submitted, onSubmit }: {
         {success && <div className="bg-[#D5F5E3] border border-[#27AE60] rounded-lg px-4 py-3 text-[#1E8449] text-sm font-bold">✓ Response submitted successfully.</div>}
 
         <div className="flex justify-end">
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={loading || expired}
             className="bg-[#C0392B] hover:bg-[#A93226] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg transition-colors">
-            {loading ? 'Submitting…' : hasSub ? 'Update Submission' : 'Submit Response'}
+            {expired ? 'Submissions closed' : loading ? 'Submitting…' : hasSub ? 'Update Submission' : 'Submit Response'}
           </button>
         </div>
       </form>
     </div>
   )
+}
+
+function DraftStatusBadge({ status, expired }: { status: 'idle' | 'saving' | 'saved' | 'error'; expired: boolean }) {
+  if (expired) {
+    return <span className="text-[10px] font-bold text-[#C0392B] uppercase tracking-wider">Locked</span>
+  }
+  const map = {
+    idle:   { text: '',                  cls: '' },
+    saving: { text: '⟳ Saving draft…',   cls: 'text-[#6B7A8D]' },
+    saved:  { text: '✓ Draft saved',     cls: 'text-[#27AE60]' },
+    error:  { text: '⚠ Draft save failed', cls: 'text-[#C0392B]' },
+  } as const
+  const m = map[status]
+  if (!m.text) return null
+  return <span className={`text-[10px] font-bold uppercase tracking-wider ${m.cls}`}>{m.text}</span>
 }
 
 // ── Generic section wrapper ───────────────────────────────────────────────────

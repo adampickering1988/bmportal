@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCandidateSession } from '@/lib/auth'
-import { saveSubmission, updateCandidate } from '@/lib/db'
+import { enforceExpiry, getCandidate, getTimerState, saveSubmission, updateCandidate } from '@/lib/db'
 import { v4 as uuid } from 'uuid'
 
 export async function POST(req: NextRequest) {
   const session = await requireCandidateSession()
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+  // Enforce timer first — if the candidate's 90 mins are up, finalise drafts
+  // and reject any new submissions.
+  await enforceExpiry(session.code)
+  const candidate = await getCandidate(session.code)
+  if (!candidate) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const timer = getTimerState(candidate)
+  if (timer.expired) {
+    return NextResponse.json({ error: 'Your 90 minutes are up. Submissions are now closed.', expired: true }, { status: 403 })
+  }
 
   const formData = await req.formData()
   const task = formData.get('task') as 'ads' | 'listings'
@@ -29,16 +39,11 @@ export async function POST(req: NextRequest) {
     fileName = file.name
   }
 
-  const candidate = { code: session.code, name: session.name } as any
-  // Get email from DB
-  const { getCandidate } = await import('@/lib/db')
-  const record = await getCandidate(session.code)
-
   await saveSubmission({
     id: uuid(),
     candidateCode: session.code,
     candidateName: session.name,
-    candidateEmail: record?.email || '',
+    candidateEmail: candidate.email,
     task,
     type: file && file.size > 0 ? 'file' : 'text',
     content: textContent || undefined,
@@ -46,8 +51,13 @@ export async function POST(req: NextRequest) {
     fileName,
   })
 
-  // Mark candidate as submitted if both tasks done
-  await updateCandidate(session.code, { submittedAt: new Date().toISOString() })
+  // Clear the matching draft now that it's been formally submitted, and
+  // record submittedAt if not already set.
+  const draftClear = task === 'ads' ? { draftAds: '' } : { draftListings: '' }
+  await updateCandidate(session.code, {
+    ...draftClear,
+    submittedAt: candidate.submittedAt || new Date().toISOString(),
+  })
 
   return NextResponse.json({ ok: true })
 }

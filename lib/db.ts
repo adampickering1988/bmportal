@@ -36,6 +36,43 @@ export interface CandidateRecord {
   createdAt: string
   startedAt?: string
   submittedAt?: string
+  draftAds?: string
+  draftListings?: string
+  autoSubmitted?: boolean
+}
+
+// Assessment duration: 90 minutes from the moment startedAt is set
+export const ASSESSMENT_DURATION_MS = 90 * 60 * 1000
+
+export interface TimerState {
+  startedAt: string | null
+  expiresAt: string | null
+  secondsRemaining: number
+  expired: boolean
+  durationMinutes: number
+}
+
+export function getTimerState(candidate: CandidateRecord): TimerState {
+  if (!candidate.startedAt) {
+    return {
+      startedAt: null,
+      expiresAt: null,
+      secondsRemaining: ASSESSMENT_DURATION_MS / 1000,
+      expired: false,
+      durationMinutes: ASSESSMENT_DURATION_MS / 60000,
+    }
+  }
+  const startMs = new Date(candidate.startedAt).getTime()
+  const expiresMs = startMs + ASSESSMENT_DURATION_MS
+  const nowMs = Date.now()
+  const secondsRemaining = Math.max(0, Math.floor((expiresMs - nowMs) / 1000))
+  return {
+    startedAt: candidate.startedAt,
+    expiresAt: new Date(expiresMs).toISOString(),
+    secondsRemaining,
+    expired: nowMs >= expiresMs,
+    durationMinutes: ASSESSMENT_DURATION_MS / 60000,
+  }
 }
 
 export interface Submission {
@@ -107,6 +144,51 @@ export async function listAllSubmissions(): Promise<Submission[]> {
     .sort((a: Submission, b: Submission) =>
       new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
     )
+}
+
+// When the timer has expired, convert any unsubmitted drafts into final
+// submissions and mark the candidate as auto-submitted. Idempotent.
+export async function enforceExpiry(code: string): Promise<CandidateRecord | null> {
+  const candidate = await getCandidate(code)
+  if (!candidate) return null
+  const timer = getTimerState(candidate)
+  if (!timer.expired || candidate.autoSubmitted) return candidate
+
+  const existingSubs = await getSubmissionsForCandidate(code)
+  const hasAds = existingSubs.some(s => s.task === 'ads')
+  const hasListings = existingSubs.some(s => s.task === 'listings')
+
+  const { v4: uuid } = await import('uuid')
+
+  if (!hasAds && candidate.draftAds && candidate.draftAds.trim()) {
+    await saveSubmission({
+      id: uuid(),
+      candidateCode: candidate.code,
+      candidateName: candidate.name,
+      candidateEmail: candidate.email,
+      task: 'ads',
+      type: 'text',
+      content: `[AUTO-SUBMITTED — TIME EXPIRED]\n\n${candidate.draftAds}`,
+    })
+  }
+  if (!hasListings && candidate.draftListings && candidate.draftListings.trim()) {
+    await saveSubmission({
+      id: uuid(),
+      candidateCode: candidate.code,
+      candidateName: candidate.name,
+      candidateEmail: candidate.email,
+      task: 'listings',
+      type: 'text',
+      content: `[AUTO-SUBMITTED — TIME EXPIRED]\n\n${candidate.draftListings}`,
+    })
+  }
+
+  await updateCandidate(code, {
+    autoSubmitted: true,
+    submittedAt: candidate.submittedAt || timer.expiresAt || new Date().toISOString(),
+  })
+
+  return getCandidate(code)
 }
 
 // Seed default candidates for demo
