@@ -72,7 +72,7 @@ export default function RecruiterPortal({
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         {activeTab === 'candidates'  && <CandidatesTab candidates={candidates} submissions={submissions} />}
-        {activeTab === 'submissions' && <SubmissionsTab submissions={submissions} />}
+        {activeTab === 'submissions' && <SubmissionsTab submissions={submissions} candidates={candidates} />}
         {activeTab === 'resources'   && <ResourcesTab />}
         {activeTab === 'add'         && <AddCandidateTab onAdded={() => { router.refresh(); setActiveTab('candidates') }} />}
       </main>
@@ -138,8 +138,71 @@ function CandidatesTab({ candidates, submissions }: { candidates: CandidateRecor
 }
 
 // ── Submissions Tab ───────────────────────────────────────────────────────────
-function SubmissionsTab({ submissions }: { submissions: Submission[] }) {
+function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]; candidates: CandidateRecord[] }) {
   const [selected, setSelected] = useState<Submission | null>(null)
+  const [analysisTarget, setAnalysisTarget] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<string | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
+
+  async function runAnalysis(candidateCode: string) {
+    setAnalysisTarget(candidateCode)
+    setAnalysis(null)
+    setAnalysisError('')
+    setAnalysisLoading(true)
+    try {
+      const res = await fetch('/api/recruiter/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateCode }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setAnalysis(data.analysis)
+      } else {
+        setAnalysisError(data.error || 'Analysis failed')
+      }
+    } catch { setAnalysisError('Something went wrong.') }
+    finally { setAnalysisLoading(false) }
+  }
+
+  // AI Analysis view
+  if (analysisTarget) {
+    const candidate = candidates.find(c => c.code === analysisTarget)
+    return (
+      <div className="max-w-4xl mx-auto space-y-4">
+        <button onClick={() => { setAnalysisTarget(null); setAnalysis(null) }} className="text-sm text-[#C0392B] hover:underline font-bold">← Back to submissions</button>
+        <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
+          <div className="bg-[#0D1B2A] px-6 py-4 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold tracking-widest text-[#C0392B] uppercase">AI Assessment Analysis</div>
+              <div className="text-white font-bold text-lg">{candidate?.name || analysisTarget}</div>
+              <div className="text-[#6B7A8D] text-xs mt-0.5">{candidate?.email}</div>
+            </div>
+            {analysis && (
+              <button onClick={() => runAnalysis(analysisTarget)} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
+                Re-analyse
+              </button>
+            )}
+          </div>
+          <div className="p-6">
+            {analysisLoading && (
+              <div className="flex items-center gap-3 py-12 justify-center">
+                <div className="animate-spin w-5 h-5 border-2 border-[#C0392B] border-t-transparent rounded-full"></div>
+                <div className="text-[#6B7A8D] text-sm">Analysing submissions against answer key... this may take 30-60 seconds</div>
+              </div>
+            )}
+            {analysisError && (
+              <div className="bg-[#FDF2F2] border border-[#E74C3C] rounded-lg px-4 py-3 text-[#C0392B] text-sm">{analysisError}</div>
+            )}
+            {analysis && (
+              <div className="prose prose-sm max-w-none text-[#2C3E50]" dangerouslySetInnerHTML={{ __html: markdownToHtml(analysis) }} />
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (selected) {
     return (
@@ -158,7 +221,7 @@ function SubmissionsTab({ submissions }: { submissions: Submission[] }) {
                 <div>
                   <div className="font-bold text-[#0D1B2A]">{selected.fileName}</div>
                   {selected.fileUrl
-                    ? <a href={selected.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-[#C0392B] hover:underline font-bold">↓ Download file</a>
+                    ? <a href={`/api/recruiter/download?url=${encodeURIComponent(selected.fileUrl)}`} className="text-sm text-[#C0392B] hover:underline font-bold">↓ Download file</a>
                     : <div className="text-sm text-[#6B7A8D]">File stored on server</div>
                   }
                 </div>
@@ -174,39 +237,95 @@ function SubmissionsTab({ submissions }: { submissions: Submission[] }) {
     )
   }
 
+  // Group submissions by candidate for the AI analyse button
+  const candidateCodes = [...new Set(submissions.map(s => s.candidateCode))]
+
   return (
-    <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#E8EBF0] bg-[#F4F6F8]">
-        <h2 className="font-bold text-[#0D1B2A]">All Submissions ({submissions.length})</h2>
-      </div>
-      {submissions.length === 0 ? (
-        <div className="px-6 py-12 text-center text-[#6B7A8D]">No submissions yet.</div>
-      ) : (
-        <div className="divide-y divide-[#E8EBF0]">
-          {submissions.map(s => (
-            <div key={s.id} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC] cursor-pointer" onClick={() => setSelected(s)}>
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 bg-[#0D1B2A] rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                  {s.candidateName.split(' ').map((n:string)=>n[0]).join('').slice(0,2)}
+    <div className="space-y-4">
+      {/* Per-candidate analysis buttons */}
+      {candidateCodes.length > 0 && (
+        <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#E8EBF0] bg-[#0D1B2A]">
+            <div className="text-[10px] font-bold tracking-widest text-[#C0392B] uppercase mb-1">AI Assessment Tool</div>
+            <h2 className="font-bold text-white">Analyse candidate submissions against the answer key</h2>
+          </div>
+          <div className="divide-y divide-[#E8EBF0]">
+            {candidateCodes.map(code => {
+              const cSubs = submissions.filter(s => s.candidateCode === code)
+              const name = cSubs[0]?.candidateName || code
+              return (
+                <div key={code} className="px-6 py-3 flex items-center justify-between hover:bg-[#FAFBFC]">
+                  <div>
+                    <div className="font-bold text-[#0D1B2A] text-sm">{name}</div>
+                    <div className="text-xs text-[#6B7A8D]">{cSubs.length} submission{cSubs.length !== 1 ? 's' : ''}</div>
+                  </div>
+                  <button
+                    onClick={() => runAnalysis(code)}
+                    className="bg-[#0D1B2A] hover:bg-[#1A2E45] text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Analyse with AI
+                  </button>
                 </div>
-                <div>
-                  <div className="font-bold text-[#0D1B2A] text-sm">{s.candidateName}</div>
-                  <div className="text-xs text-[#6B7A8D]">{s.task === 'ads' ? 'Task 1: Advertising Analysis' : 'Task 2: Listing Quality'} · {s.type === 'file' ? `File: ${s.fileName}` : `Text (${s.content?.length || 0} chars)`}</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-xs text-[#6B7A8D] hidden md:block">{new Date(s.submittedAt).toLocaleString('en-GB')}</div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${s.task === 'ads' ? 'bg-[#EAF2FB] text-[#1A5276] border-[#2471A3]' : 'bg-[#FDF2F8] text-[#7D3C98] border-[#9B59B6]'}`}>
-                  {s.task === 'ads' ? 'Task 1' : 'Task 2'}
-                </span>
-                <span className="text-xs text-[#C0392B] font-bold">View →</span>
-              </div>
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </div>
       )}
+
+      <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#E8EBF0] bg-[#F4F6F8]">
+          <h2 className="font-bold text-[#0D1B2A]">All Submissions ({submissions.length})</h2>
+        </div>
+        {submissions.length === 0 ? (
+          <div className="px-6 py-12 text-center text-[#6B7A8D]">No submissions yet.</div>
+        ) : (
+          <div className="divide-y divide-[#E8EBF0]">
+            {submissions.map(s => (
+              <div key={s.id} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC] cursor-pointer" onClick={() => setSelected(s)}>
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-[#0D1B2A] rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                    {s.candidateName.split(' ').map((n:string)=>n[0]).join('').slice(0,2)}
+                  </div>
+                  <div>
+                    <div className="font-bold text-[#0D1B2A] text-sm">{s.candidateName}</div>
+                    <div className="text-xs text-[#6B7A8D]">{s.task === 'ads' ? 'Task 1: Advertising Analysis' : 'Task 2: Listing Quality'} · {s.type === 'file' ? `File: ${s.fileName}` : `Text (${s.content?.length || 0} chars)`}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-xs text-[#6B7A8D] hidden md:block">{new Date(s.submittedAt).toLocaleString('en-GB')}</div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${s.task === 'ads' ? 'bg-[#EAF2FB] text-[#1A5276] border-[#2471A3]' : 'bg-[#FDF2F8] text-[#7D3C98] border-[#9B59B6]'}`}>
+                    {s.task === 'ads' ? 'Task 1' : 'Task 2'}
+                  </span>
+                  <span className="text-xs text-[#C0392B] font-bold">View →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
+}
+
+// Simple markdown → HTML converter for the AI analysis output
+function markdownToHtml(md: string): string {
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-black text-[#0D1B2A] mt-6 mb-2 border-b border-[#E8EBF0] pb-2">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 class="text-base font-bold text-[#0D1B2A] mt-4 mb-1">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
+    .replace(/\|(.+)\|/g, (match) => {
+      const cells = match.split('|').filter(c => c.trim())
+      if (cells.every(c => /^[\s-:]+$/.test(c))) return '' // separator row
+      const tag = cells.some(c => /^[\s-]+$/.test(c)) ? 'td' : 'td'
+      return '<tr>' + cells.map(c => `<${tag} class="border border-[#E8EBF0] px-3 py-2 text-sm">${c.trim()}</${tag}>`).join('') + '</tr>'
+    })
+    .replace(/(<tr>.*<\/tr>\n?)+/g, (match) => `<table class="w-full border-collapse border border-[#E8EBF0] my-4">${match}</table>`)
+    .replace(/^- (.+)$/gm, '<li class="ml-4 text-sm leading-relaxed">$1</li>')
+    .replace(/(<li.*<\/li>\n?)+/g, (match) => `<ul class="list-disc pl-4 space-y-1 my-2">${match}</ul>`)
+    .replace(/\n{2,}/g, '</p><p class="text-sm leading-relaxed mb-3">')
+    .replace(/^(?!<)(.+)$/gm, '<p class="text-sm leading-relaxed mb-3">$1</p>')
+    .replace(/<p class="text-sm leading-relaxed mb-3"><\/p>/g, '')
 }
 
 // ── Resources Tab ─────────────────────────────────────────────────────────────
