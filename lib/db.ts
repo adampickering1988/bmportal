@@ -39,6 +39,8 @@ export interface CandidateRecord {
   draftAds?: string
   draftListings?: string
   autoSubmitted?: boolean
+  aiAnalysis?: string
+  aiAnalysisAt?: string
 }
 
 // Assessment duration: 90 minutes from the moment startedAt is set

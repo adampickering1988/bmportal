@@ -145,6 +145,14 @@ function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
 
+  function viewExistingAnalysis(candidateCode: string) {
+    const candidate = candidates.find(c => c.code === candidateCode)
+    if (candidate?.aiAnalysis) {
+      setAnalysisTarget(candidateCode)
+      setAnalysis(candidate.aiAnalysis)
+    }
+  }
+
   async function runAnalysis(candidateCode: string) {
     setAnalysisTarget(candidateCode)
     setAnalysis(null)
@@ -253,18 +261,33 @@ function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]
             {candidateCodes.map(code => {
               const cSubs = submissions.filter(s => s.candidateCode === code)
               const name = cSubs[0]?.candidateName || code
+              const candidate = candidates.find(c => c.code === code)
+              const hasAnalysis = !!candidate?.aiAnalysis
               return (
                 <div key={code} className="px-6 py-3 flex items-center justify-between hover:bg-[#FAFBFC]">
                   <div>
                     <div className="font-bold text-[#0D1B2A] text-sm">{name}</div>
-                    <div className="text-xs text-[#6B7A8D]">{cSubs.length} submission{cSubs.length !== 1 ? 's' : ''}</div>
+                    <div className="text-xs text-[#6B7A8D]">
+                      {cSubs.length} submission{cSubs.length !== 1 ? 's' : ''}
+                      {hasAnalysis && <span className="ml-2 text-[#27AE60]">· Analysis saved {new Date(candidate.aiAnalysisAt!).toLocaleDateString('en-GB')}</span>}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => runAnalysis(code)}
-                    className="bg-[#0D1B2A] hover:bg-[#1A2E45] text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Analyse with AI
-                  </button>
+                  <div className="flex gap-2">
+                    {hasAnalysis && (
+                      <button
+                        onClick={() => viewExistingAnalysis(code)}
+                        className="bg-[#27AE60] hover:bg-[#1E8449] text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors"
+                      >
+                        View Analysis
+                      </button>
+                    )}
+                    <button
+                      onClick={() => runAnalysis(code)}
+                      className="bg-[#0D1B2A] hover:bg-[#1A2E45] text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors"
+                    >
+                      {hasAnalysis ? 'Re-analyse' : 'Analyse with AI'}
+                    </button>
+                  </div>
                 </div>
               )
             })}

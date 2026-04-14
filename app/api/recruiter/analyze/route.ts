@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRecruiterSession } from '@/lib/auth'
-import { getSubmissionsForCandidate, getCandidate } from '@/lib/db'
+import { getSubmissionsForCandidate, getCandidate, updateCandidate } from '@/lib/db'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
@@ -172,6 +172,12 @@ IMPORTANT SCORING RULES:
     .filter(block => block.type === 'text')
     .map(block => block.text)
     .join('\n')
+
+  // Persist the analysis on the candidate record
+  await updateCandidate(candidateCode, {
+    aiAnalysis: analysisText,
+    aiAnalysisAt: new Date().toISOString(),
+  })
 
   return NextResponse.json({
     ok: true,
