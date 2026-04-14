@@ -320,7 +320,7 @@ export default function RecruiterPortal({
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        {activeTab === 'candidates'  && <CandidatesTab candidates={candidates} submissions={submissions} />}
+        {activeTab === 'candidates'  && <CandidatesTab candidates={candidates} submissions={submissions} onRefresh={() => router.refresh()} />}
         {activeTab === 'submissions' && <SubmissionsTab submissions={submissions} candidates={candidates} />}
         {activeTab === 'resources'   && <ResourcesTab />}
         {activeTab === 'add'         && <AddCandidateTab onAdded={() => { router.refresh(); setActiveTab('candidates') }} />}
@@ -330,7 +330,22 @@ export default function RecruiterPortal({
 }
 
 // ── Candidates Tab ────────────────────────────────────────────────────────────
-function CandidatesTab({ candidates, submissions }: { candidates: CandidateRecord[]; submissions: Submission[] }) {
+function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: CandidateRecord[]; submissions: Submission[]; onRefresh: () => void }) {
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  async function removeCandidate(code: string) {
+    if (!confirm('Are you sure you want to remove this candidate? This cannot be undone.')) return
+    setDeleting(code)
+    try {
+      await fetch('/api/recruiter/delete-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      onRefresh()
+    } catch {} finally { setDeleting(null) }
+  }
+
   const getStatus = (c: CandidateRecord) => {
     if (c.submittedAt) return { label:'Submitted', cls:'bg-[#D5F5E3] text-[#1E8449] border-[#27AE60]' }
     if (c.startedAt)   return { label:'In Progress', cls:'bg-[#FEF9E7] text-[#D4A017] border-[#F39C12]' }
@@ -376,6 +391,14 @@ function CandidatesTab({ candidates, submissions }: { candidates: CandidateRecor
                     </div>
                   )}
                   <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
+                  <button
+                    onClick={() => removeCandidate(c.code)}
+                    disabled={deleting === c.code}
+                    className="text-xs text-[#6B7A8D] hover:text-[#C0392B] transition-colors disabled:opacity-40"
+                    title="Remove candidate"
+                  >
+                    {deleting === c.code ? '...' : '✕'}
+                  </button>
                 </div>
               </div>
             )

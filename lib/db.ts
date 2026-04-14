@@ -24,6 +24,7 @@ async function getKV() {
         const prefix = pattern.replace('*', '')
         return [...store.keys()].filter(k => k.startsWith(prefix))
       },
+      del: async (k: string) => { store.delete(k) },
     }
   }
   return kvClient
@@ -108,6 +109,11 @@ export async function updateCandidate(code: string, updates: Partial<CandidateRe
   if (existing) {
     await kv.set(`candidate:${code.toUpperCase()}`, { ...existing, ...updates })
   }
+}
+
+export async function deleteCandidate(code: string): Promise<void> {
+  const kv = await getKV()
+  await kv.del(`candidate:${code.toUpperCase()}`)
 }
 
 export async function listCandidates(): Promise<CandidateRecord[]> {
