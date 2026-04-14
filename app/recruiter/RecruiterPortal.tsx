@@ -1,7 +1,118 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CandidateRecord, Submission } from '@/lib/db'
+
+async function downloadAnalysisPdf(candidateName: string, candidateEmail: string, analysisMarkdown: string) {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const margin = 18
+  const usable = pageWidth - margin * 2
+  let y = margin
+
+  function checkPage(needed: number) {
+    if (y + needed > doc.internal.pageSize.getHeight() - margin) {
+      doc.addPage()
+      y = margin
+    }
+  }
+
+  // Header
+  doc.setFillColor(13, 27, 42) // #0D1B2A
+  doc.rect(0, 0, pageWidth, 32, 'F')
+  doc.setTextColor(192, 57, 43) // #C0392B
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.text('IDEAL DIRECT — CONFIDENTIAL', margin, 10)
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(16)
+  doc.text('AI Assessment Analysis', margin, 19)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(155, 170, 184)
+  doc.text(`${candidateName}  ·  ${candidateEmail}  ·  ${new Date().toLocaleDateString('en-GB')}`, margin, 27)
+  y = 40
+
+  // Parse markdown into lines
+  const lines = analysisMarkdown.split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) { y += 3; continue }
+
+    // Headings
+    if (trimmed.startsWith('## ')) {
+      checkPage(14)
+      y += 4
+      doc.setDrawColor(232, 235, 240)
+      doc.line(margin, y, pageWidth - margin, y)
+      y += 6
+      doc.setTextColor(13, 27, 42)
+      doc.setFontSize(13)
+      doc.setFont('helvetica', 'bold')
+      doc.text(trimmed.replace(/^##\s+/, ''), margin, y)
+      y += 7
+      continue
+    }
+
+    // Table rows
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const cells = trimmed.split('|').filter(c => c.trim()).map(c => c.trim())
+      if (cells.every(c => /^[\s:-]+$/.test(c))) continue // separator
+      checkPage(7)
+      doc.setFontSize(8)
+      const colW = usable / cells.length
+      cells.forEach((cell, i) => {
+        const isBold = cell.includes('**')
+        const clean = cell.replace(/\*\*/g, '')
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+        doc.setTextColor(13, 27, 42)
+        doc.text(clean, margin + i * colW, y, { maxWidth: colW - 2 })
+      })
+      y += 6
+      continue
+    }
+
+    // Bullet points
+    if (trimmed.startsWith('- ')) {
+      checkPage(8)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(44, 62, 80)
+      const text = trimmed.replace(/^-\s+/, '').replace(/\*\*/g, '')
+      const split = doc.splitTextToSize(`•  ${text}`, usable - 6)
+      doc.text(split, margin + 3, y)
+      y += split.length * 4.5
+      continue
+    }
+
+    // Regular text
+    checkPage(8)
+    doc.setFontSize(9)
+    doc.setTextColor(44, 62, 80)
+    const isBoldLine = trimmed.startsWith('**') && trimmed.endsWith('**')
+    const clean = trimmed.replace(/\*\*/g, '')
+    doc.setFont('helvetica', isBoldLine ? 'bold' : 'normal')
+    const split = doc.splitTextToSize(clean, usable)
+    doc.text(split, margin, y)
+    y += split.length * 4.5
+  }
+
+  // Footer on each page
+  const pages = doc.getNumberOfPages()
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i)
+    doc.setFontSize(7)
+    doc.setTextColor(155, 170, 184)
+    doc.text(
+      `Ideal Direct — AI Assessment Analysis — ${candidateName} — Page ${i} of ${pages}`,
+      margin,
+      doc.internal.pageSize.getHeight() - 8,
+    )
+  }
+
+  doc.save(`${candidateName.replace(/\s+/g, '_')}_Assessment_Analysis.pdf`)
+}
 
 export default function RecruiterPortal({
   candidates,
@@ -188,9 +299,14 @@ function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]
               <div className="text-[#6B7A8D] text-xs mt-0.5">{candidate?.email}</div>
             </div>
             {analysis && (
-              <button onClick={() => runAnalysis(analysisTarget)} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
-                Re-analyse
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => downloadAnalysisPdf(candidate?.name || 'Candidate', candidate?.email || '', analysis)} className="text-xs text-white bg-[#C0392B] hover:bg-[#A93226] px-3 py-1.5 rounded font-bold transition-colors">
+                  Download PDF
+                </button>
+                <button onClick={() => runAnalysis(analysisTarget)} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
+                  Re-analyse
+                </button>
+              </div>
             )}
           </div>
           <div className="p-6">
