@@ -101,15 +101,16 @@ export async function POST(req: NextRequest) {
 
   const answerKey = getAnswerKeySummary()
 
-  const client = new Anthropic({ apiKey })
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4000,
-    messages: [
-      {
-        role: 'user',
-        content: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
+  let analysisText: string
+  try {
+    const client = new Anthropic({ apiKey })
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
 
 ANSWER KEY (with marks per finding):
 ${answerKey}
@@ -168,16 +169,25 @@ IMPORTANT SCORING RULES:
     ],
   })
 
-  const analysisText = message.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('\n')
+    analysisText = message.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n')
+  } catch (err: any) {
+    console.error('[analyze] Anthropic API error:', err?.message || err)
+    return NextResponse.json({ error: `AI analysis failed: ${err?.message || 'Unknown error'}` }, { status: 500 })
+  }
 
   // Persist the analysis on the candidate record
-  await updateCandidate(candidateCode, {
-    aiAnalysis: analysisText,
-    aiAnalysisAt: new Date().toISOString(),
-  })
+  try {
+    await updateCandidate(candidateCode, {
+      aiAnalysis: analysisText,
+      aiAnalysisAt: new Date().toISOString(),
+    })
+  } catch (err: any) {
+    console.error('[analyze] Failed to persist analysis:', err?.message || err)
+    // Still return the analysis even if persistence fails
+  }
 
   return NextResponse.json({
     ok: true,
