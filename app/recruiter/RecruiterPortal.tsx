@@ -6,112 +6,250 @@ import type { CandidateRecord, Submission } from '@/lib/db'
 async function downloadAnalysisPdf(candidateName: string, candidateEmail: string, analysisMarkdown: string) {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const margin = 18
-  const usable = pageWidth - margin * 2
-  let y = margin
+  const pw = doc.internal.pageSize.getWidth()   // 210
+  const ph = doc.internal.pageSize.getHeight()  // 297
+  const mx = 18                                  // horizontal margin
+  const footerH = 14                             // reserved for footer
+  const usable = pw - mx * 2                     // text width
+  const lineH = 4.2                              // line height for 9pt body
+  let y = mx
 
-  function checkPage(needed: number) {
-    if (y + needed > doc.internal.pageSize.getHeight() - margin) {
-      doc.addPage()
-      y = margin
-    }
+  // ── helpers ────────────────────────────────────────────────────────────────
+  function newPageIfNeeded(need: number) {
+    if (y + need > ph - footerH) { doc.addPage(); y = mx }
   }
 
-  // Header
-  doc.setFillColor(13, 27, 42) // #0D1B2A
-  doc.rect(0, 0, pageWidth, 32, 'F')
-  doc.setTextColor(192, 57, 43) // #C0392B
-  doc.setFontSize(8)
+  function drawWrapped(text: string, x: number, maxW: number, fontSize: number, style: 'normal' | 'bold', color: [number, number, number]): number {
+    doc.setFontSize(fontSize)
+    doc.setFont('helvetica', style)
+    doc.setTextColor(...color)
+    const lines: string[] = doc.splitTextToSize(text, maxW)
+    const lh = fontSize * 0.42          // approximate mm per line
+    newPageIfNeeded(lines.length * lh + 2)
+    doc.text(lines, x, y)
+    return lines.length * lh
+  }
+
+  // ── header (dark bar) ──────────────────────────────────────────────────────
+  doc.setFillColor(13, 27, 42)
+  doc.rect(0, 0, pw, 34, 'F')
+  doc.setFillColor(192, 57, 43)
+  doc.rect(0, 34, pw, 1.2, 'F')        // red accent line
+  doc.setTextColor(192, 57, 43)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
-  doc.text('IDEAL DIRECT — CONFIDENTIAL', margin, 10)
+  doc.text('IDEAL DIRECT  —  CONFIDENTIAL', mx, 10)
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16)
-  doc.text('AI Assessment Analysis', margin, 19)
-  doc.setFontSize(10)
+  doc.setFontSize(17)
+  doc.text('AI Assessment Analysis', mx, 20)
+  doc.setFontSize(9.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(155, 170, 184)
-  doc.text(`${candidateName}  ·  ${candidateEmail}  ·  ${new Date().toLocaleDateString('en-GB')}`, margin, 27)
-  y = 40
+  doc.text(`${candidateName}  ·  ${candidateEmail}`, mx, 27)
+  doc.setFontSize(8)
+  doc.text(`Generated ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, mx, 31.5)
 
-  // Parse markdown into lines
-  const lines = analysisMarkdown.split('\n')
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) { y += 3; continue }
-
-    // Headings
-    if (trimmed.startsWith('## ')) {
-      checkPage(14)
-      y += 4
-      doc.setDrawColor(232, 235, 240)
-      doc.line(margin, y, pageWidth - margin, y)
-      y += 6
-      doc.setTextColor(13, 27, 42)
-      doc.setFontSize(13)
-      doc.setFont('helvetica', 'bold')
-      doc.text(trimmed.replace(/^##\s+/, ''), margin, y)
-      y += 7
-      continue
-    }
-
-    // Table rows
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      const cells = trimmed.split('|').filter(c => c.trim()).map(c => c.trim())
-      if (cells.every(c => /^[\s:-]+$/.test(c))) continue // separator
-      checkPage(7)
-      doc.setFontSize(8)
-      const colW = usable / cells.length
-      cells.forEach((cell, i) => {
-        const isBold = cell.includes('**')
-        const clean = cell.replace(/\*\*/g, '')
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal')
-        doc.setTextColor(13, 27, 42)
-        doc.text(clean, margin + i * colW, y, { maxWidth: colW - 2 })
-      })
-      y += 6
-      continue
-    }
-
-    // Bullet points
-    if (trimmed.startsWith('- ')) {
-      checkPage(8)
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(44, 62, 80)
-      const text = trimmed.replace(/^-\s+/, '').replace(/\*\*/g, '')
-      const split = doc.splitTextToSize(`•  ${text}`, usable - 6)
-      doc.text(split, margin + 3, y)
-      y += split.length * 4.5
-      continue
-    }
-
-    // Regular text
-    checkPage(8)
+  // Score badge in header (right-aligned)
+  const { score, pass } = extractScore(analysisMarkdown)
+  if (score !== null) {
+    const scoreText = `${score} / 100`
+    const resultText = pass ? 'PASS' : 'FAIL'
+    doc.setFontSize(22)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(scoreText, pw - mx, 19, { align: 'right' })
     doc.setFontSize(9)
-    doc.setTextColor(44, 62, 80)
-    const isBoldLine = trimmed.startsWith('**') && trimmed.endsWith('**')
-    const clean = trimmed.replace(/\*\*/g, '')
-    doc.setFont('helvetica', isBoldLine ? 'bold' : 'normal')
-    const split = doc.splitTextToSize(clean, usable)
-    doc.text(split, margin, y)
-    y += split.length * 4.5
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(pass ? 39 : 231, pass ? 174 : 76, pass ? 96 : 60) // green or red
+    doc.text(resultText, pw - mx, 27, { align: 'right' })
+  }
+  y = 42
+
+  // ── parse markdown ─────────────────────────────────────────────────────────
+  const raw = analysisMarkdown.split('\n')
+
+  // Pre-parse: collect table blocks so we can draw them as proper grids
+  type Block =
+    | { type: 'heading'; text: string }
+    | { type: 'bullet'; text: string }
+    | { type: 'text'; text: string; bold: boolean }
+    | { type: 'table'; rows: string[][] }
+    | { type: 'gap' }
+
+  const blocks: Block[] = []
+  let tableAcc: string[][] | null = null
+
+  for (const line of raw) {
+    const t = line.trim()
+
+    // Table row
+    if (t.startsWith('|') && t.endsWith('|')) {
+      const cells = t.split('|').slice(1, -1).map(c => c.trim())
+      if (cells.every(c => /^[\s:-]+$/.test(c))) continue // separator
+      if (!tableAcc) tableAcc = []
+      tableAcc.push(cells.map(c => c.replace(/\*\*/g, '')))
+      continue
+    }
+
+    // Flush any accumulated table
+    if (tableAcc) { blocks.push({ type: 'table', rows: tableAcc }); tableAcc = null }
+
+    if (!t) { blocks.push({ type: 'gap' }); continue }
+    if (t.startsWith('## '))  { blocks.push({ type: 'heading', text: t.replace(/^##\s+/, '') }); continue }
+    if (t.startsWith('### ')) { blocks.push({ type: 'heading', text: t.replace(/^###\s+/, '') }); continue }
+    if (t.startsWith('- '))   { blocks.push({ type: 'bullet', text: t.replace(/^-\s+/, '').replace(/\*\*/g, '') }); continue }
+
+    const isBold = t.startsWith('**') && t.endsWith('**')
+    blocks.push({ type: 'text', text: t.replace(/\*\*/g, ''), bold: isBold })
+  }
+  if (tableAcc) blocks.push({ type: 'table', rows: tableAcc })
+
+  // ── render blocks ──────────────────────────────────────────────────────────
+  for (const block of blocks) {
+    switch (block.type) {
+      case 'gap':
+        y += 2.5
+        break
+
+      case 'heading':
+        newPageIfNeeded(14)
+        y += 5
+        doc.setDrawColor(220, 223, 228)
+        doc.line(mx, y, pw - mx, y)
+        y += 5.5
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(13, 27, 42)
+        doc.text(block.text, mx, y)
+        y += 6
+        break
+
+      case 'bullet': {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        const lines: string[] = doc.splitTextToSize(block.text, usable - 8)
+        newPageIfNeeded(lines.length * lineH + 1)
+        doc.setTextColor(192, 57, 43)
+        doc.text('•', mx + 1, y)
+        doc.setTextColor(44, 62, 80)
+        doc.text(lines, mx + 6, y)
+        y += lines.length * lineH + 1.5
+        break
+      }
+
+      case 'text': {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', block.bold ? 'bold' : 'normal')
+        doc.setTextColor(block.bold ? 13 : 44, block.bold ? 27 : 62, block.bold ? 42 : 80)
+        const lines: string[] = doc.splitTextToSize(block.text, usable)
+        newPageIfNeeded(lines.length * lineH + 1)
+        doc.text(lines, mx, y)
+        y += lines.length * lineH + 1.5
+        break
+      }
+
+      case 'table': {
+        const { rows } = block
+        if (rows.length === 0) break
+        const numCols = rows[0].length
+        const cellPad = 2.5
+        const fontSize = 8
+        doc.setFontSize(fontSize)
+        const cellLH = 3.6
+
+        // Calculate column widths proportionally
+        // Give "Notes" (last col) more space if it exists, and thin cols for numbers
+        let colWidths: number[]
+        if (numCols === 4) {
+          // Section | Max | Awarded | Notes
+          colWidths = [usable * 0.35, usable * 0.1, usable * 0.12, usable * 0.43]
+        } else if (numCols === 3) {
+          colWidths = [usable * 0.4, usable * 0.15, usable * 0.45]
+        } else {
+          colWidths = rows[0].map(() => usable / numCols)
+        }
+
+        // Measure row heights (wrap text in each cell)
+        const rowData = rows.map(cells => {
+          const wrapped = cells.map((cell, ci) => {
+            doc.setFontSize(fontSize)
+            return doc.splitTextToSize(cell, colWidths[ci] - cellPad * 2) as string[]
+          })
+          const h = Math.max(...wrapped.map(w => w.length)) * cellLH + cellPad * 2
+          return { cells, wrapped, height: Math.max(h, 8) }
+        })
+
+        // Total table height — if it won't fit, start a new page
+        const totalH = rowData.reduce((s, r) => s + r.height, 0)
+        if (totalH < ph - footerH - mx) newPageIfNeeded(totalH + 4)
+
+        for (let ri = 0; ri < rowData.length; ri++) {
+          const rd = rowData[ri]
+          const isHeader = ri === 0
+          newPageIfNeeded(rd.height + 1)
+
+          let cx = mx
+          for (let ci = 0; ci < numCols; ci++) {
+            const cw = colWidths[ci]
+
+            // Cell background
+            if (isHeader) {
+              doc.setFillColor(13, 27, 42)
+              doc.rect(cx, y, cw, rd.height, 'F')
+            } else if (ri % 2 === 0) {
+              doc.setFillColor(248, 249, 250)
+              doc.rect(cx, y, cw, rd.height, 'F')
+            }
+
+            // Cell border
+            doc.setDrawColor(220, 223, 228)
+            doc.rect(cx, y, cw, rd.height, 'S')
+
+            // Cell text
+            doc.setFontSize(fontSize)
+            doc.setFont('helvetica', isHeader ? 'bold' : 'normal')
+            doc.setTextColor(isHeader ? 255 : 33, isHeader ? 255 : 37, isHeader ? 255 : 41)
+            const textY = y + cellPad + cellLH * 0.7
+            doc.text(rd.wrapped[ci] || [''], cx + cellPad, textY)
+
+            cx += cw
+          }
+          y += rd.height
+        }
+        y += 4
+        break
+      }
+    }
   }
 
-  // Footer on each page
+  // ── footer on every page ───────────────────────────────────────────────────
   const pages = doc.getNumberOfPages()
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i)
+    doc.setDrawColor(220, 223, 228)
+    doc.line(mx, ph - footerH + 2, pw - mx, ph - footerH + 2)
     doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
     doc.setTextColor(155, 170, 184)
     doc.text(
-      `Ideal Direct — AI Assessment Analysis — ${candidateName} — Page ${i} of ${pages}`,
-      margin,
-      doc.internal.pageSize.getHeight() - 8,
+      `Ideal Direct  ·  AI Assessment Analysis  ·  ${candidateName}`,
+      mx, ph - 8,
     )
+    doc.text(`Page ${i} of ${pages}`, pw - mx, ph - 8, { align: 'right' })
   }
 
   doc.save(`${candidateName.replace(/\s+/g, '_')}_Assessment_Analysis.pdf`)
+}
+
+function extractScore(analysis: string | undefined): { score: number | null; pass: boolean | null } {
+  if (!analysis) return { score: null, pass: null }
+  // Look for TOTAL row in the score table: | **TOTAL** | **100** | **72** |
+  const totalMatch = analysis.match(/\|\s*\*{0,2}TOTAL\*{0,2}\s*\|\s*\*{0,2}100\*{0,2}\s*\|\s*\*{0,2}(\d+(?:\.\d+)?)\*{0,2}\s*\|/)
+  const score = totalMatch ? parseFloat(totalMatch[1]) : null
+  // Look for PASS/FAIL
+  const resultMatch = analysis.match(/Result:\s*\*{0,2}(PASS|FAIL)\*{0,2}/i)
+  const pass = resultMatch ? resultMatch[1].toUpperCase() === 'PASS' : (score !== null ? score >= 65 : null)
+  return { score, pass }
 }
 
 export default function RecruiterPortal({
@@ -298,16 +436,28 @@ function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]
               <div className="text-white font-bold text-lg">{candidate?.name || analysisTarget}</div>
               <div className="text-[#6B7A8D] text-xs mt-0.5">{candidate?.email}</div>
             </div>
-            {analysis && (
-              <div className="flex gap-2">
-                <button onClick={() => downloadAnalysisPdf(candidate?.name || 'Candidate', candidate?.email || '', analysis)} className="text-xs text-white bg-[#C0392B] hover:bg-[#A93226] px-3 py-1.5 rounded font-bold transition-colors">
-                  Download PDF
-                </button>
-                <button onClick={() => runAnalysis(analysisTarget)} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
-                  Re-analyse
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {analysis && (() => {
+                const { score, pass } = extractScore(analysis)
+                if (score === null) return null
+                return (
+                  <div className="text-right">
+                    <div className="text-white font-black text-2xl">{score}<span className="text-sm font-normal text-[#6B7A8D]"> / 100</span></div>
+                    <div className={`text-xs font-bold ${pass ? 'text-[#27AE60]' : 'text-[#E74C3C]'}`}>{pass ? 'PASS' : 'FAIL'}</div>
+                  </div>
+                )
+              })()}
+              {analysis && (
+                <div className="flex gap-2">
+                  <button onClick={() => downloadAnalysisPdf(candidate?.name || 'Candidate', candidate?.email || '', analysis)} className="text-xs text-white bg-[#C0392B] hover:bg-[#A93226] px-3 py-1.5 rounded font-bold transition-colors">
+                    Download PDF
+                  </button>
+                  <button onClick={() => runAnalysis(analysisTarget)} className="text-xs text-[#6B7A8D] hover:text-white border border-[#243E59] hover:border-[#6B7A8D] px-3 py-1.5 rounded transition-colors">
+                    Re-analyse
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="p-6">
             {analysisLoading && (
