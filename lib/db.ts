@@ -42,6 +42,8 @@ export interface CandidateRecord {
   autoSubmitted?: boolean
   aiAnalysis?: string
   aiAnalysisAt?: string
+  status?: 'active' | 'rejected' | 'interview'
+  statusAt?: string
 }
 
 // Assessment duration: 90 minutes from the moment startedAt is set

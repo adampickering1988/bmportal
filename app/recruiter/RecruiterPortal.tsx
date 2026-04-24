@@ -332,6 +332,7 @@ export default function RecruiterPortal({
 // ── Candidates Tab ────────────────────────────────────────────────────────────
 function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: CandidateRecord[]; submissions: Submission[]; onRefresh: () => void }) {
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [updating, setUpdating] = useState<string | null>(null)
 
   async function removeCandidate(code: string) {
     if (!confirm('Are you sure you want to remove this candidate? This cannot be undone.')) return
@@ -346,65 +347,122 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
     } catch {} finally { setDeleting(null) }
   }
 
-  const getStatus = (c: CandidateRecord) => {
+  async function setStatus(code: string, status: 'active' | 'rejected' | 'interview') {
+    setUpdating(code)
+    try {
+      await fetch('/api/recruiter/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, status }),
+      })
+      onRefresh()
+    } catch {} finally { setUpdating(null) }
+  }
+
+  const getProgressStatus = (c: CandidateRecord) => {
     if (c.submittedAt) return { label:'Submitted', cls:'bg-[#D5F5E3] text-[#1E8449] border-[#27AE60]' }
     if (c.startedAt)   return { label:'In Progress', cls:'bg-[#FEF9E7] text-[#D4A017] border-[#F39C12]' }
     return { label:'Not Started', cls:'bg-[#F4F6F8] text-[#6B7A8D] border-[#E8EBF0]' }
   }
 
-  return (
-    <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#E8EBF0] bg-[#F4F6F8]">
-        <h2 className="font-bold text-[#0D1B2A]">All Candidates ({candidates.length})</h2>
-      </div>
-      {candidates.length === 0 ? (
-        <div className="px-6 py-12 text-center text-[#6B7A8D]">No candidates yet. Use "Add Candidate" to create access codes.</div>
-      ) : (
-        <div className="divide-y divide-[#E8EBF0]">
-          {candidates.map(c => {
-            const st = getStatus(c)
-            const subCount = submissions.filter(s => s.candidateCode === c.code).length
-            return (
-              <div key={c.code} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC]">
-                <div className="flex items-center gap-5">
-                  <div className="w-10 h-10 bg-[#0D1B2A] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
-                  </div>
-                  <div>
-                    <div className="font-bold text-[#0D1B2A] text-sm">{c.name}</div>
-                    <div className="text-xs text-[#6B7A8D]">{c.email}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="text-xs text-[#6B7A8D]">Code</div>
-                    <div className="font-mono font-bold text-[#0D1B2A] text-sm tracking-widest">{c.code}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-[#6B7A8D]">Submissions</div>
-                    <div className="font-bold text-[#0D1B2A] text-sm">{subCount}</div>
-                  </div>
-                  {c.startedAt && (
-                    <div className="text-center hidden md:block">
-                      <div className="text-xs text-[#6B7A8D]">Started</div>
-                      <div className="text-xs text-[#0D1B2A]">{new Date(c.startedAt).toLocaleDateString('en-GB')}</div>
-                    </div>
-                  )}
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
-                  <button
-                    onClick={() => removeCandidate(c.code)}
-                    disabled={deleting === c.code}
-                    className="text-xs text-[#6B7A8D] hover:text-[#C0392B] transition-colors disabled:opacity-40"
-                    title="Remove candidate"
-                  >
-                    {deleting === c.code ? '...' : '✕'}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+  const active    = candidates.filter(c => !c.status || c.status === 'active')
+  const interview = candidates.filter(c => c.status === 'interview')
+  const rejected  = candidates.filter(c => c.status === 'rejected')
+
+  function renderCandidate(c: CandidateRecord) {
+    const st = getProgressStatus(c)
+    const subCount = submissions.filter(s => s.candidateCode === c.code).length
+    const isUpdating = updating === c.code
+    const candidateStatus = c.status || 'active'
+
+    return (
+      <div key={c.code} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC]">
+        <div className="flex items-center gap-5">
+          <div className="w-10 h-10 bg-[#0D1B2A] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
+          </div>
+          <div>
+            <div className="font-bold text-[#0D1B2A] text-sm">{c.name}</div>
+            <div className="text-xs text-[#6B7A8D]">{c.email}</div>
+          </div>
         </div>
-      )}
+        <div className="flex items-center gap-4">
+          <div className="text-center hidden lg:block">
+            <div className="text-xs text-[#6B7A8D]">Code</div>
+            <div className="font-mono font-bold text-[#0D1B2A] text-sm tracking-widest">{c.code}</div>
+          </div>
+          <div className="text-center hidden md:block">
+            <div className="text-xs text-[#6B7A8D]">Submissions</div>
+            <div className="font-bold text-[#0D1B2A] text-sm">{subCount}</div>
+          </div>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1.5">
+            {candidateStatus !== 'interview' && (
+              <button
+                onClick={() => setStatus(c.code, 'interview')}
+                disabled={isUpdating}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#EAF2FB] text-[#1A5276] border border-[#2471A3] hover:bg-[#2471A3] hover:text-white transition-colors disabled:opacity-40"
+              >
+                {isUpdating ? '...' : 'Interview'}
+              </button>
+            )}
+            {candidateStatus !== 'rejected' && (
+              <button
+                onClick={() => setStatus(c.code, 'rejected')}
+                disabled={isUpdating}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FDF2F2] text-[#C0392B] border border-[#E74C3C] hover:bg-[#C0392B] hover:text-white transition-colors disabled:opacity-40"
+              >
+                {isUpdating ? '...' : 'Reject'}
+              </button>
+            )}
+            {candidateStatus !== 'active' && (
+              <button
+                onClick={() => setStatus(c.code, 'active')}
+                disabled={isUpdating}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#F4F6F8] text-[#6B7A8D] border border-[#E8EBF0] hover:bg-[#6B7A8D] hover:text-white transition-colors disabled:opacity-40"
+              >
+                {isUpdating ? '...' : 'Restore'}
+              </button>
+            )}
+            <button
+              onClick={() => removeCandidate(c.code)}
+              disabled={deleting === c.code}
+              className="text-xs text-[#6B7A8D] hover:text-[#C0392B] transition-colors disabled:opacity-40 ml-1"
+              title="Remove candidate"
+            >
+              {deleting === c.code ? '...' : '✕'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderSection(title: string, items: CandidateRecord[], color: string, icon: string, emptyText?: string) {
+    if (items.length === 0 && !emptyText) return null
+    return (
+      <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden">
+        <div className={`px-6 py-3 border-b border-[#E8EBF0] ${color}`}>
+          <h2 className="font-bold text-sm">{icon} {title} ({items.length})</h2>
+        </div>
+        {items.length === 0 ? (
+          <div className="px-6 py-8 text-center text-[#6B7A8D] text-sm">{emptyText}</div>
+        ) : (
+          <div className="divide-y divide-[#E8EBF0]">
+            {items.map(renderCandidate)}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {renderSection('Request for Interview', interview, 'bg-[#EAF2FB] text-[#1A5276]', '🎯')}
+      {renderSection('Active Candidates', active, 'bg-[#F4F6F8] text-[#0D1B2A]', '👥', 'No candidates yet. Use "Add Candidate" to create access codes.')}
+      {renderSection('Rejected', rejected, 'bg-[#FDF2F2] text-[#922B21]', '✗')}
     </div>
   )
 }
