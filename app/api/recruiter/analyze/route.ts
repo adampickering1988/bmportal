@@ -1,9 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRecruiterSession } from '@/lib/auth'
-import { getSubmissionsForCandidate, getCandidate, updateCandidate } from '@/lib/db'
+import { getSubmissionsForCandidate, getCandidate, updateCandidate, type Submission } from '@/lib/db'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
+
+// Extract text from an uploaded file (docx or plain text)
+async function extractFileText(sub: Submission): Promise<string> {
+  if (!sub.fileUrl) return `[File: ${sub.fileName} — no URL available]`
+
+  try {
+    // Download the file from Vercel Blob
+    const res = await fetch(sub.fileUrl, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    })
+    if (!res.ok) return `[File: ${sub.fileName} — download failed (${res.status})]`
+
+    const buffer = Buffer.from(await res.arrayBuffer())
+    const name = (sub.fileName || '').toLowerCase()
+
+    // .docx — extract text from the XML inside the zip
+    if (name.endsWith('.docx')) {
+      try {
+        const AdmZip = require('adm-zip')
+        const zip = new AdmZip(buffer)
+        const docXml = zip.readAsText('word/document.xml')
+        const text = docXml
+          .replace(/<w:p[\s>]/g, '\n<w:p ')        // paragraph breaks
+          .replace(/<w:tab\/>/g, '\t')               // tabs
+          .replace(/<[^>]+>/g, '')                   // strip all XML tags
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/\n{3,}/g, '\n\n')                // collapse blank lines
+          .trim()
+        return text || `[File: ${sub.fileName} — empty document]`
+      } catch (e: any) {
+        return `[File: ${sub.fileName} — failed to parse docx: ${e.message}]`
+      }
+    }
+
+    // .txt — plain text
+    if (name.endsWith('.txt')) {
+      return buffer.toString('utf-8')
+    }
+
+    // .pdf — basic text extraction (no OCR)
+    if (name.endsWith('.pdf')) {
+      // Simple PDF text extraction: find text between BT/ET operators
+      const raw = buffer.toString('latin1')
+      const textParts: string[] = []
+      const regex = /\(([^)]+)\)/g
+      let match
+      while ((match = regex.exec(raw)) !== null) {
+        if (match[1].length > 2) textParts.push(match[1])
+      }
+      const text = textParts.join(' ').trim()
+      return text || `[File: ${sub.fileName} — PDF could not be parsed (may be image-based)]`
+    }
+
+    return `[File: ${sub.fileName} — unsupported format for text extraction]`
+  } catch (e: any) {
+    return `[File: ${sub.fileName} — error: ${e.message}]`
+  }
+}
 
 // Extract text from the answer key docx at build/runtime
 function getAnswerKeyText(): string {
@@ -88,16 +146,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No submissions to analyse' }, { status: 400 })
   }
 
-  // Gather all submission text
-  const adsSubmissions = submissions
-    .filter(s => s.task === 'ads')
-    .map(s => s.content || `[File submission: ${s.fileName}]`)
-    .join('\n\n---\n\n')
+  // Gather all submission text — extract content from uploaded files
+  const adsSubs = submissions.filter(s => s.task === 'ads')
+  const listingSubs = submissions.filter(s => s.task === 'listings')
 
-  const listingsSubmissions = submissions
-    .filter(s => s.task === 'listings')
-    .map(s => s.content || `[File submission: ${s.fileName}]`)
-    .join('\n\n---\n\n')
+  const adsTexts = await Promise.all(adsSubs.map(async s => {
+    if (s.content && s.content.trim()) return s.content
+    if (s.type === 'file') return extractFileText(s)
+    return '[Empty submission]'
+  }))
+  const adsSubmissions = adsTexts.join('\n\n---\n\n')
+
+  const listingsTexts = await Promise.all(listingSubs.map(async s => {
+    if (s.content && s.content.trim()) return s.content
+    if (s.type === 'file') return extractFileText(s)
+    return '[Empty submission]'
+  }))
+  const listingsSubmissions = listingsTexts.join('\n\n---\n\n')
 
   const answerKey = getAnswerKeySummary()
 
