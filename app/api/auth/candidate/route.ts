@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { signToken } from '@/lib/auth'
-import { getCandidate, updateCandidate, seedDemoCandidates } from '@/lib/db'
+import { getCandidate, updateCandidate } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
-  await seedDemoCandidates()
   const { code } = await req.json()
   if (!code) return NextResponse.json({ error: 'Access code required' }, { status: 400 })
   const candidate = await getCandidate(code.toUpperCase())
