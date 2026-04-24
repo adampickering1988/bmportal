@@ -170,18 +170,23 @@ export async function POST(req: NextRequest) {
   const adsSubs = submissions.filter(s => s.task === 'ads')
   const listingSubs = submissions.filter(s => s.task === 'listings')
 
-  const adsTexts = await Promise.all(adsSubs.map(async s => {
-    if (s.content && s.content.trim()) return s.content
-    if (s.type === 'file') return extractFileText(s)
-    return '[Empty submission]'
-  }))
+  async function getSubmissionContent(s: Submission): Promise<string> {
+    const parts: string[] = []
+    // Always extract file content if there's a file
+    if (s.type === 'file' && s.fileUrl) {
+      parts.push(await extractFileText(s))
+    }
+    // Also include any typed text
+    if (s.content && s.content.trim()) {
+      parts.push(`[Typed text by candidate]: ${s.content}`)
+    }
+    return parts.length > 0 ? parts.join('\n\n') : '[Empty submission]'
+  }
+
+  const adsTexts = await Promise.all(adsSubs.map(getSubmissionContent))
   const adsSubmissions = adsTexts.join('\n\n---\n\n')
 
-  const listingsTexts = await Promise.all(listingSubs.map(async s => {
-    if (s.content && s.content.trim()) return s.content
-    if (s.type === 'file') return extractFileText(s)
-    return '[Empty submission]'
-  }))
+  const listingsTexts = await Promise.all(listingSubs.map(getSubmissionContent))
   const listingsSubmissions = listingsTexts.join('\n\n---\n\n')
 
   const answerKey = getAnswerKeySummary()
