@@ -38,6 +38,26 @@ async function extractFileText(sub: Submission): Promise<string> {
       }
     }
 
+    // .xlsx / .xls — spreadsheet
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      try {
+        const XLSX = require('xlsx')
+        const workbook = XLSX.read(buffer, { type: 'buffer' })
+        const parts: string[] = []
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName]
+          const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false })
+          if (csv.trim()) {
+            parts.push(`--- Sheet: ${sheetName} ---\n${csv}`)
+          }
+        }
+        const text = parts.join('\n\n')
+        return text || `[File: ${sub.fileName} — empty spreadsheet]`
+      } catch (e: any) {
+        return `[File: ${sub.fileName} — failed to parse xlsx: ${e.message}]`
+      }
+    }
+
     // .txt — plain text
     if (name.endsWith('.txt')) {
       return buffer.toString('utf-8')
