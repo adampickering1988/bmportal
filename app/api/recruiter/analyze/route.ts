@@ -202,7 +202,18 @@ export async function POST(req: NextRequest) {
           role: 'user',
           content: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
 
-ANSWER KEY (with marks per finding):
+IMPORTANT CONTEXT ON HOW TO USE THE ANSWER KEY:
+The answer key below is a GUIDE to the quality and depth expected — it is NOT a literal checklist. Candidates do NOT need to identify the exact same findings, use the exact same figures, or reach the exact same conclusions as the answer key to score well. What matters is:
+
+1. QUALITY OF THINKING — Does the candidate demonstrate strong analytical reasoning? Do they identify meaningful patterns and issues in the data, even if different from the answer key's examples?
+2. EVIDENCE-BASED ANALYSIS — Are their observations supported by specific data points, campaign IDs, and figures from the source material? Vague generalisations without evidence score poorly.
+3. ACTIONABLE RECOMMENDATIONS — Do they provide clear, specific, implementable recommendations? Not just "optimise this campaign" but concrete actions with rationale.
+4. COMMERCIAL AWARENESS — Do they understand what the numbers mean for the business? Do they prioritise by impact?
+5. DEPTH AND THOROUGHNESS — Have they engaged meaningfully with the data, or have they been superficial?
+
+A candidate who identifies different issues from the answer key but supports them with solid data and reasoning should score WELL. A candidate who parrots answer-key-style findings without understanding or evidence should score POORLY. Judge the quality of their thinking, not whether they found the exact same things.
+
+ANSWER KEY (use as a quality benchmark, not a literal scoring rubric):
 ${answerKey}
 
 CANDIDATE: ${candidate.name}
@@ -217,17 +228,17 @@ ${listingsSubmissions || '[No submission for Task 2]'}
 Please produce a structured analysis report in this exact format:
 
 ## Overall Summary
-2-3 sentence executive summary of the candidate's performance.
+2-3 sentence executive summary of the candidate's performance, focusing on their analytical quality and commercial thinking.
 
 ## Score Breakdown
 
 | Section | Max | Awarded | Notes |
 |---------|-----|---------|-------|
 | 1 — Account-Level Analysis | 15 | X | Brief note |
-| 2 — Obvious Waste | 20 | X | Brief note |
-| 3 — Keyword Cannibalisation | 25 | X | Brief note |
-| 4 — Under-Invested Opportunities | 15 | X | Brief note |
-| 5 — BX-009 Root Cause | 15 | X | Brief note |
+| 2 — Waste Identification & Negatives | 20 | X | Brief note |
+| 3 — Cannibalisation & Overlap | 25 | X | Brief note |
+| 4 — Growth Opportunities | 15 | X | Brief note |
+| 5 — BX-009 Diagnosis | 15 | X | Brief note |
 | 6 — Listing Quality | 10 | X | Brief note |
 | **TOTAL** | **100** | **X** | |
 
@@ -235,26 +246,29 @@ Please produce a structured analysis report in this exact format:
 
 ## Detailed Analysis
 
-For each section, list:
-- What the candidate correctly identified (with their specific data points)
-- What they missed (referencing the answer key)
-- Quality of their recommendations
-- Whether they used specific campaign IDs and figures (required for marks)
+For each section, assess:
+- The quality of the candidate's analytical thinking and observations
+- Whether their points are well-supported with specific data (campaign IDs, figures, percentages)
+- The strength and specificity of their recommendations
+- Any particularly impressive insights or notable gaps
+- Credit valid findings even if they differ from the answer key's specific examples
 
 ## Strengths
-Bullet points of what the candidate did well.
+Bullet points of what the candidate did well — highlight strong analytical thinking, good use of data, creative insights, or commercial awareness.
 
 ## Areas for Improvement
-Bullet points of what was missed or could be stronger.
+Bullet points of what was missed or could be stronger — focus on gaps in thinking or methodology, not just "didn't mention X from the answer key."
 
 ## Hiring Recommendation
-A final 2-3 sentence recommendation on whether to proceed with this candidate.
+A final 2-3 sentence recommendation on whether to proceed with this candidate, based on their overall analytical capability and potential as a Brand Manager.
 
-IMPORTANT SCORING RULES:
-- Award 0 marks for vague observations without specific campaign IDs or figures
-- Award 50% (partial credit) where the issue is correctly identified but evidence or fix is incomplete
-- Be fair but rigorous — this is a professional assessment
-- If submissions are file-only with no text content, note that the file could not be analysed and score conservatively`,
+SCORING APPROACH:
+- Award marks based on the QUALITY of analysis, not exact match to answer key findings
+- A well-reasoned observation with data support scores full marks even if the answer key lists a different finding for that section
+- Vague observations without specific evidence (no campaign IDs, no figures) score poorly regardless of whether the point is valid
+- Partial credit for identifying a real issue but not fully developing the analysis or recommendation
+- Be fair and constructive — assess them as a potential colleague, not against a perfect-score rubric
+- If submissions are file-only with no extractable text, note this and score conservatively`,
       },
     ],
   })
