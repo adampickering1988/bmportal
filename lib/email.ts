@@ -152,3 +152,134 @@ export async function sendAccessCodeEmail(
     return false
   }
 }
+
+// Generic Graph email sender used by status notifications
+async function sendGraphEmail(opts: {
+  to: string
+  subject: string
+  html: string
+}): Promise<boolean> {
+  const token = await getAccessToken()
+  if (!token) return false
+  try {
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(FROM_USER)}/sendMail`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            subject: opts.subject,
+            body: { contentType: 'HTML', content: opts.html },
+            toRecipients: [{ emailAddress: { address: opts.to } }],
+          },
+          saveToSentItems: true,
+        }),
+      },
+    )
+    if (!res.ok) {
+      console.error('[email] Graph sendMail failed:', res.status, await res.text())
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[email] Graph send error:', err)
+    return false
+  }
+}
+
+const NOTIFY_RECIPIENT = process.env.RECRUITMENT_NOTIFY_EMAIL || 'cara@idealdirect.co.uk'
+
+export async function sendInterviewNotification(
+  candidateName: string,
+  candidateEmail: string,
+  candidateCode: string,
+  score: number | null,
+): Promise<boolean> {
+  const scoreLine = score !== null
+    ? `<p style="margin:0 0 8px;font-size:15px;"><strong>AI Assessment Score:</strong> ${score} / 100</p>`
+    : ''
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#2C3E50;">
+      <div style="background:#0D1B2A;border-radius:12px;padding:28px 32px;color:#fff;margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:#27AE60;text-transform:uppercase;margin-bottom:8px;">Action Required</div>
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:900;">Interview Request</h1>
+        <p style="color:#9BAAB8;font-size:14px;margin:0;">A candidate has been moved to "Request for Interview"</p>
+      </div>
+
+      <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi Cara,</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 20px;">
+        <strong>${candidateName}</strong> has been moved to the <strong>Request for Interview</strong> stage. Please reach out to organise an interview at your earliest convenience.
+      </p>
+
+      <div style="background:#F4F6F8;border:1px solid #E8EBF0;border-radius:10px;padding:16px 20px;margin:0 0 20px;">
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Candidate:</strong> ${candidateName}</p>
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Email:</strong> <a href="mailto:${candidateEmail}" style="color:#C0392B;text-decoration:none;">${candidateEmail}</a></p>
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Access Code:</strong> ${candidateCode}</p>
+        ${scoreLine}
+      </div>
+
+      <p style="font-size:14px;line-height:1.6;margin:0 0 16px;color:#5A6B7D;">
+        You can review their full assessment and AI analysis in the recruiter portal.
+      </p>
+
+      <a href="https://brandx-portal.vercel.app/recruiter" style="display:inline-block;background:#C0392B;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:14px;">
+        Open Recruiter Portal &rarr;
+      </a>
+
+      <p style="font-size:12px;line-height:1.6;margin:24px 0 0;color:#6B7A8D;">
+        This is an automated notification from the Ideal Direct Brand Manager Recruitment Portal.
+      </p>
+    </div>
+  `
+  return sendGraphEmail({
+    to: NOTIFY_RECIPIENT,
+    subject: `Interview Request — ${candidateName}`,
+    html,
+  })
+}
+
+export async function sendRejectionNotification(
+  candidateName: string,
+  candidateEmail: string,
+  candidateCode: string,
+  score: number | null,
+): Promise<boolean> {
+  const scoreLine = score !== null
+    ? `<p style="margin:0 0 8px;font-size:15px;"><strong>AI Assessment Score:</strong> ${score} / 100</p>`
+    : ''
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#2C3E50;">
+      <div style="background:#0D1B2A;border-radius:12px;padding:28px 32px;color:#fff;margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:#E74C3C;text-transform:uppercase;margin-bottom:8px;">Status Update</div>
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:900;">Candidate Rejected</h1>
+        <p style="color:#9BAAB8;font-size:14px;margin:0;">A candidate has been moved to the rejected pile</p>
+      </div>
+
+      <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi Cara,</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 20px;">
+        <strong>${candidateName}</strong> has been <strong>rejected</strong> in the recruiter portal. No action is required from you, but please send them a polite rejection note when you have a moment.
+      </p>
+
+      <div style="background:#F4F6F8;border:1px solid #E8EBF0;border-radius:10px;padding:16px 20px;margin:0 0 20px;">
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Candidate:</strong> ${candidateName}</p>
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Email:</strong> <a href="mailto:${candidateEmail}" style="color:#C0392B;text-decoration:none;">${candidateEmail}</a></p>
+        <p style="margin:0 0 8px;font-size:15px;"><strong>Access Code:</strong> ${candidateCode}</p>
+        ${scoreLine}
+      </div>
+
+      <a href="https://brandx-portal.vercel.app/recruiter" style="display:inline-block;background:#0D1B2A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:14px;">
+        Open Recruiter Portal &rarr;
+      </a>
+
+      <p style="font-size:12px;line-height:1.6;margin:24px 0 0;color:#6B7A8D;">
+        This is an automated notification from the Ideal Direct Brand Manager Recruitment Portal.
+      </p>
+    </div>
+  `
+  return sendGraphEmail({
+    to: NOTIFY_RECIPIENT,
+    subject: `Candidate Rejected — ${candidateName}`,
+    html,
+  })
+}

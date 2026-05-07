@@ -374,6 +374,7 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
     const subCount = submissions.filter(s => s.candidateCode === c.code).length
     const isUpdating = updating === c.code
     const candidateStatus = c.status || 'active'
+    const { score, pass } = extractScore(c.aiAnalysis)
 
     return (
       <div key={c.code} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC]">
@@ -395,6 +396,13 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
             <div className="text-xs text-[#6B7A8D]">Submissions</div>
             <div className="font-bold text-[#0D1B2A] text-sm">{subCount}</div>
           </div>
+          {score !== null && (
+            <div className="text-center">
+              <div className="text-[10px] text-[#6B7A8D] uppercase tracking-wider font-bold">AI Score</div>
+              <div className={`font-black text-base ${pass ? 'text-[#1E8449]' : 'text-[#C0392B]'}`}>{score}<span className="text-[10px] font-normal text-[#6B7A8D]">/100</span></div>
+              <div className={`text-[9px] font-bold uppercase tracking-wider ${pass ? 'text-[#27AE60]' : 'text-[#E74C3C]'}`}>{pass ? 'Pass' : 'Fail'}</div>
+            </div>
+          )}
           <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
 
           {/* Action buttons */}
