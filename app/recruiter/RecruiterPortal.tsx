@@ -610,16 +610,32 @@ function SubmissionsTab({ submissions, candidates }: { submissions: Submission[]
               const name = cSubs[0]?.candidateName || code
               const candidate = candidates.find(c => c.code === code)
               const hasAnalysis = !!candidate?.aiAnalysis
+              const { score, pass } = extractScore(candidate?.aiAnalysis)
               return (
                 <div key={code} className="px-6 py-3 flex items-center justify-between hover:bg-[#FAFBFC]">
-                  <div>
-                    <div className="font-bold text-[#0D1B2A] text-sm">{name}</div>
-                    <div className="text-xs text-[#6B7A8D]">
-                      {cSubs.length} submission{cSubs.length !== 1 ? 's' : ''}
-                      {hasAnalysis && <span className="ml-2 text-[#27AE60]">· Analysis saved {new Date(candidate.aiAnalysisAt!).toLocaleDateString('en-GB')}</span>}
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="font-bold text-[#0D1B2A] text-sm flex items-center gap-2">
+                        {name}
+                        {hasAnalysis && (
+                          <span className="text-[10px] font-bold bg-[#D5F5E3] text-[#1E8449] border border-[#27AE60] px-2 py-0.5 rounded-full uppercase tracking-wider">✓ Already Analysed</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#6B7A8D]">
+                        {cSubs.length} submission{cSubs.length !== 1 ? 's' : ''}
+                        {hasAnalysis && (
+                          <span className="ml-2">· Analysed {new Date(candidate!.aiAnalysisAt!).toLocaleDateString('en-GB')}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-3">
+                    {hasAnalysis && score !== null && (
+                      <div className="text-right hidden sm:block">
+                        <div className="font-black text-[#0D1B2A] text-lg">{score}<span className="text-xs font-normal text-[#6B7A8D]"> / 100</span></div>
+                        <div className={`text-[10px] font-bold ${pass ? 'text-[#27AE60]' : 'text-[#E74C3C]'}`}>{pass ? 'PASS' : 'FAIL'}</div>
+                      </div>
+                    )}
                     {hasAnalysis && (
                       <button
                         onClick={() => viewExistingAnalysis(code)}
