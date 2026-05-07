@@ -365,9 +365,26 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
     return { label:'Not Started', cls:'bg-[#F4F6F8] text-[#6B7A8D] border-[#E8EBF0]' }
   }
 
-  const active    = candidates.filter(c => !c.status || c.status === 'active')
-  const interview = candidates.filter(c => c.status === 'interview')
-  const rejected  = candidates.filter(c => c.status === 'rejected')
+  // Sort active candidates: those with submissions first, then by AI score (highest first),
+  // then by created date as a final tiebreaker.
+  const subCounts = new Map<string, number>()
+  for (const s of submissions) {
+    subCounts.set(s.candidateCode, (subCounts.get(s.candidateCode) || 0) + 1)
+  }
+
+  const sortActive = (a: CandidateRecord, b: CandidateRecord) => {
+    const aSubs = subCounts.get(a.code) || 0
+    const bSubs = subCounts.get(b.code) || 0
+    if (aSubs !== bSubs) return bSubs - aSubs               // submitted first
+    const aScore = extractScore(a.aiAnalysis).score ?? -1
+    const bScore = extractScore(b.aiAnalysis).score ?? -1
+    if (aScore !== bScore) return bScore - aScore           // higher score first
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  }
+
+  const active    = candidates.filter(c => !c.status || c.status === 'active').sort(sortActive)
+  const interview = candidates.filter(c => c.status === 'interview').sort(sortActive)
+  const rejected  = candidates.filter(c => c.status === 'rejected').sort(sortActive)
 
   function renderCandidate(c: CandidateRecord) {
     const st = getProgressStatus(c)
