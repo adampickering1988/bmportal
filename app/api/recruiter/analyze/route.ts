@@ -65,15 +65,22 @@ async function extractFileText(sub: Submission): Promise<string> {
 
     // .pdf — basic text extraction (no OCR)
     if (name.endsWith('.pdf')) {
-      // Simple PDF text extraction: find text between BT/ET operators
       const raw = buffer.toString('latin1')
       const textParts: string[] = []
       const regex = /\(([^)]+)\)/g
       let match
       while ((match = regex.exec(raw)) !== null) {
-        if (match[1].length > 2) textParts.push(match[1])
+        const s = match[1]
+        // Filter out binary noise: must contain mostly readable ASCII letters/digits/whitespace
+        const printableRatio = (s.match(/[A-Za-z0-9 .,:;!?'"\-()]/g) || []).length / s.length
+        if (s.length > 2 && s.length < 500 && printableRatio > 0.7) {
+          textParts.push(s)
+        }
       }
-      const text = textParts.join(' ').trim()
+      const text = textParts
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
       return text || `[File: ${sub.fileName} — PDF could not be parsed (may be image-based)]`
     }
 
@@ -81,6 +88,16 @@ async function extractFileText(sub: Submission): Promise<string> {
   } catch (e: any) {
     return `[File: ${sub.fileName} — error: ${e.message}]`
   }
+}
+
+const MAX_FILE_TEXT_CHARS = 60000 // ~15k tokens, generous but bounded
+
+async function extractFileTextBounded(sub: Submission): Promise<string> {
+  const text = await extractFileText(sub)
+  if (text.length > MAX_FILE_TEXT_CHARS) {
+    return text.slice(0, MAX_FILE_TEXT_CHARS) + `\n\n[File truncated — ${text.length} chars total, showing first ${MAX_FILE_TEXT_CHARS}]`
+  }
+  return text
 }
 
 // Extract text from the answer key docx at build/runtime
@@ -174,7 +191,7 @@ export async function POST(req: NextRequest) {
     const parts: string[] = []
     // Always extract file content if there's a file
     if (s.type === 'file' && s.fileUrl) {
-      parts.push(await extractFileText(s))
+      parts.push(await extractFileTextBounded(s))
     }
     // Also include any typed text
     if (s.content && s.content.trim()) {
