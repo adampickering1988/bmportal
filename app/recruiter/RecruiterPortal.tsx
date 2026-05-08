@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CandidateRecord, Submission } from '@/lib/db'
 
@@ -333,6 +333,26 @@ export default function RecruiterPortal({
 function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: CandidateRecord[]; submissions: Submission[]; onRefresh: () => void }) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [uploadingCv, setUploadingCv] = useState<string | null>(null)
+  const cvInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
+
+  async function handleCvUpload(code: string, file: File) {
+    setUploadingCv(code)
+    try {
+      const fd = new FormData()
+      fd.append('code', code)
+      fd.append('file', file)
+      const res = await fetch('/api/recruiter/upload-cv', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'CV upload failed')
+      } else {
+        onRefresh()
+      }
+    } catch {
+      alert('Something went wrong uploading the CV.')
+    } finally { setUploadingCv(null) }
+  }
 
   async function removeCandidate(code: string) {
     if (!confirm('Are you sure you want to remove this candidate? This cannot be undone.')) return
@@ -393,15 +413,49 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
     const candidateStatus = c.status || 'active'
     const { score, pass } = extractScore(c.aiAnalysis)
 
+    const isUploadingCv = uploadingCv === c.code
+    const hasCv = !!c.cvUrl
+
     return (
       <div key={c.code} className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC]">
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 flex-1 min-w-0">
           <div className="w-10 h-10 bg-[#0D1B2A] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
             {c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="font-bold text-[#0D1B2A] text-sm">{c.name}</div>
-            <div className="text-xs text-[#6B7A8D]">{c.email}</div>
+            <div className="text-xs text-[#6B7A8D] truncate">{c.email}</div>
+          </div>
+
+          {/* CV upload / view */}
+          <div className="flex items-center gap-1.5">
+            <input
+              ref={el => { if (el) cvInputRefs.current.set(c.code, el) }}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) handleCvUpload(c.code, f)
+                e.target.value = ''
+              }}
+            />
+            {hasCv && c.cvUrl && (
+              <a
+                href={`/api/recruiter/download?url=${encodeURIComponent(c.cvUrl)}`}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#EAF6E9] text-[#1E8449] border border-[#27AE60] hover:bg-[#27AE60] hover:text-white transition-colors"
+                title={c.cvFileName || 'View CV'}
+              >
+                📄 View CV
+              </a>
+            )}
+            <button
+              onClick={() => cvInputRefs.current.get(c.code)?.click()}
+              disabled={isUploadingCv}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#F4F6F8] text-[#6B7A8D] border border-[#E8EBF0] hover:bg-[#0D1B2A] hover:text-white hover:border-[#0D1B2A] transition-colors disabled:opacity-40"
+            >
+              {isUploadingCv ? 'Uploading…' : hasCv ? 'Replace' : '⬆ Upload CV'}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-4">

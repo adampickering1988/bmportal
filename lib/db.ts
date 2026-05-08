@@ -44,6 +44,9 @@ export interface CandidateRecord {
   aiAnalysisAt?: string
   status?: 'active' | 'rejected' | 'interview'
   statusAt?: string
+  cvUrl?: string
+  cvFileName?: string
+  cvUploadedAt?: string
 }
 
 // Assessment duration: 90 minutes from the moment startedAt is set
