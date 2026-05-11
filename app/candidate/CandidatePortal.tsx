@@ -134,13 +134,21 @@ export default function CandidatePortal({
         </div>
       </header>
 
-      {/* Main content */}
+      {/* Main content — all tabs stay mounted to preserve state (especially
+          typed text in the Submit tab) across tab switches. Inactive tabs are
+          hidden with CSS rather than unmounted. */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         {expired && <ExpiredBanner onGoToSubmit={() => setActiveTab('submit')} />}
-        {activeTab === 'instructions' && <InstructionsTab onNext={() => setActiveTab('listings')} />}
-        {activeTab === 'listings'     && <ListingsTab />}
-        {activeTab === 'data'         && <DataTab />}
-        {activeTab === 'submit'       && (
+        <div className={activeTab === 'instructions' ? '' : 'hidden'}>
+          <InstructionsTab onNext={() => setActiveTab('listings')} />
+        </div>
+        <div className={activeTab === 'listings' ? '' : 'hidden'}>
+          <ListingsTab />
+        </div>
+        <div className={activeTab === 'data' ? '' : 'hidden'}>
+          <DataTab />
+        </div>
+        <div className={activeTab === 'submit' ? '' : 'hidden'}>
           <SubmitTab
             hasAds={hasAds}
             hasListings={hasListings}
@@ -149,7 +157,7 @@ export default function CandidatePortal({
             expired={expired}
             onRefresh={() => router.refresh()}
           />
-        )}
+        </div>
       </main>
     </div>
   )
@@ -420,8 +428,26 @@ function TaskSubmitForm({ task, title, description, submitted, initialDraft, exp
           setDraftStatus('error')
         }
       } catch { setDraftStatus('error') }
-    }, 1500)
+    }, 800) // faster save — 800ms instead of 1500ms
     return () => clearTimeout(id)
+  }, [text, task, expired])
+
+  // Best-effort flush on tab close / page unload so nothing is lost
+  useEffect(() => {
+    if (expired) return
+    function flushOnUnload() {
+      if (text === lastSavedRef.current) return
+      try {
+        const blob = new Blob([JSON.stringify({ task, content: text })], { type: 'application/json' })
+        navigator.sendBeacon?.('/api/candidate/draft', blob)
+      } catch {}
+    }
+    window.addEventListener('beforeunload', flushOnUnload)
+    window.addEventListener('pagehide', flushOnUnload)
+    return () => {
+      window.removeEventListener('beforeunload', flushOnUnload)
+      window.removeEventListener('pagehide', flushOnUnload)
+    }
   }, [text, task, expired])
 
   async function handleSubmit(e: React.FormEvent) {
