@@ -63,36 +63,10 @@ async function extractFileText(sub: Submission): Promise<string> {
       return buffer.toString('utf-8')
     }
 
-    // .pdf — use pdfjs-dist for proper text extraction (handles compressed streams)
+    // .pdf — handled by Claude's native document support, not text extraction.
+    // Mark with a placeholder so the caller knows to attach the PDF instead.
     if (name.endsWith('.pdf')) {
-      try {
-        // Dynamic import — only loaded when needed
-        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs') as any
-        // Disable workers in Node — process synchronously on the main thread
-        const loadingTask = pdfjs.getDocument({
-          data: new Uint8Array(buffer),
-          useWorkerFetch: false,
-          isEvalSupported: false,
-          useSystemFonts: false,
-          disableFontFace: true,
-        })
-        const pdf = await loadingTask.promise
-        const pages: string[] = []
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i)
-          const content = await page.getTextContent()
-          const pageText = content.items
-            .map((item: any) => 'str' in item ? item.str : '')
-            .join(' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-          if (pageText) pages.push(`--- Page ${i} ---\n${pageText}`)
-        }
-        const text = pages.join('\n\n')
-        return text || `[File: ${sub.fileName} — PDF contains no extractable text (may be image-based)]`
-      } catch (e: any) {
-        return `[File: ${sub.fileName} — PDF parse failed: ${e.message}]`
-      }
+      return `[PDF:${sub.fileName}]`
     }
 
     return `[File: ${sub.fileName} — unsupported format for text extraction]`
@@ -204,13 +178,36 @@ export async function POST(req: NextRequest) {
   const adsSubs = submissions.filter(s => s.task === 'ads')
   const listingSubs = submissions.filter(s => s.task === 'listings')
 
+  // Collect PDFs to attach as native Claude document blocks (Claude can read
+  // PDF content natively — including Adobe-generated compressed ones — far
+  // more reliably than any Node-side text extractor).
+  const pdfAttachments: { task: 'ads'|'listings'; fileName: string; base64: string }[] = []
+
+  async function downloadPdfBase64(url: string): Promise<string | null> {
+    try {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` } })
+      if (!r.ok) return null
+      const buf = Buffer.from(await r.arrayBuffer())
+      return buf.toString('base64')
+    } catch { return null }
+  }
+
   async function getSubmissionContent(s: Submission): Promise<string> {
     const parts: string[] = []
-    // Always extract file content if there's a file
     if (s.type === 'file' && s.fileUrl) {
-      parts.push(await extractFileTextBounded(s))
+      const isPdf = (s.fileName || '').toLowerCase().endsWith('.pdf')
+      if (isPdf) {
+        const b64 = await downloadPdfBase64(s.fileUrl)
+        if (b64) {
+          pdfAttachments.push({ task: s.task, fileName: s.fileName || 'submission.pdf', base64: b64 })
+          parts.push(`[PDF attached separately: ${s.fileName}]`)
+        } else {
+          parts.push(`[PDF: ${s.fileName} — download failed]`)
+        }
+      } else {
+        parts.push(await extractFileTextBounded(s))
+      }
     }
-    // Also include any typed text
     if (s.content && s.content.trim()) {
       parts.push(`[Typed text by candidate]: ${s.content}`)
     }
@@ -261,7 +258,14 @@ Therefore when scoring this candidate:
       messages: [
         {
           role: 'user',
-          content: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
+          content: [
+            // Attach any PDF submissions natively — Claude reads them directly
+            ...pdfAttachments.map(pdf => ({
+              type: 'document' as const,
+              source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: pdf.base64 },
+              title: `${pdf.task === 'ads' ? 'Task 1 (Ads)' : 'Task 2 (Listings)'}: ${pdf.fileName}`,
+            })),
+            { type: 'text' as const, text: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
 
 NOTE ON DATA VERSION:
 An earlier version of the spreadsheet had internal inconsistencies in the Dashboard (banner totals didn't match SKU rows; Ad Spend column didn't match Ad Campaign Report sums). Some candidates may have correctly identified these inconsistencies in their submissions — this should be CREDITED as strong analytical attention to detail, not penalised. If a candidate flags data integrity issues with specific examples, treat that as a positive signal of rigor.
@@ -333,8 +337,10 @@ SCORING APPROACH:
 - Vague observations without specific evidence (no campaign IDs, no figures) score poorly regardless of whether the point is valid
 - Partial credit for identifying a real issue but not fully developing the analysis or recommendation
 - Be fair and constructive — assess them as a potential colleague, not against a perfect-score rubric
-- If submissions are file-only with no extractable text, note this and score conservatively`,
-      },
+- If submissions are file-only with no extractable text, note this and score conservatively
+${pdfAttachments.length > 0 ? `\n${pdfAttachments.length} PDF submission${pdfAttachments.length > 1 ? 's are' : ' is'} attached to this message. Read them carefully — they contain the candidate's full analysis.` : ''}` },
+          ],
+        },
     ],
   })
 
