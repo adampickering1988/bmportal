@@ -190,6 +190,22 @@ function InstructionsTab({ onNext }: { onNext: () => void }) {
         <p className="text-[#9BAAB8] text-base">Health Supplements · Amazon UK · 90 minutes</p>
       </div>
 
+      {/* AI Detection Warning */}
+      <div className="bg-[#2D1515] border-2 border-[#C0392B] rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="text-3xl flex-shrink-0">⚠️</div>
+          <div className="flex-1">
+            <div className="text-[#E74C3C] font-black text-sm uppercase tracking-wider mb-2">AI Detection Active</div>
+            <p className="text-[#F5C8C0] text-[13px] leading-relaxed mb-2">
+              All submissions are analysed by automated AI-detection tools that compare your work against typical AI-generated patterns and what a human can realistically produce in 90 minutes under pressure.
+            </p>
+            <p className="text-white text-[13px] leading-relaxed font-bold">
+              Please do not use ChatGPT, Claude, Gemini or any other AI tool to complete these tasks. Submissions flagged as AI-generated will be rejected and you will not progress to interview, regardless of score.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Section title="Overview">
         <p className="text-[15px] text-[#2C3E50] leading-relaxed">
           You have been assigned to manage Brand X, a health supplement brand selling on Amazon UK.
