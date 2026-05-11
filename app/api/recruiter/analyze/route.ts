@@ -63,25 +63,36 @@ async function extractFileText(sub: Submission): Promise<string> {
       return buffer.toString('utf-8')
     }
 
-    // .pdf — basic text extraction (no OCR)
+    // .pdf — use pdfjs-dist for proper text extraction (handles compressed streams)
     if (name.endsWith('.pdf')) {
-      const raw = buffer.toString('latin1')
-      const textParts: string[] = []
-      const regex = /\(([^)]+)\)/g
-      let match
-      while ((match = regex.exec(raw)) !== null) {
-        const s = match[1]
-        // Filter out binary noise: must contain mostly readable ASCII letters/digits/whitespace
-        const printableRatio = (s.match(/[A-Za-z0-9 .,:;!?'"\-()]/g) || []).length / s.length
-        if (s.length > 2 && s.length < 500 && printableRatio > 0.7) {
-          textParts.push(s)
+      try {
+        // Dynamic import — only loaded when needed
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs') as any
+        // Disable workers in Node — process synchronously on the main thread
+        const loadingTask = pdfjs.getDocument({
+          data: new Uint8Array(buffer),
+          useWorkerFetch: false,
+          isEvalSupported: false,
+          useSystemFonts: false,
+          disableFontFace: true,
+        })
+        const pdf = await loadingTask.promise
+        const pages: string[] = []
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i)
+          const content = await page.getTextContent()
+          const pageText = content.items
+            .map((item: any) => 'str' in item ? item.str : '')
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+          if (pageText) pages.push(`--- Page ${i} ---\n${pageText}`)
         }
+        const text = pages.join('\n\n')
+        return text || `[File: ${sub.fileName} — PDF contains no extractable text (may be image-based)]`
+      } catch (e: any) {
+        return `[File: ${sub.fileName} — PDF parse failed: ${e.message}]`
       }
-      const text = textParts
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      return text || `[File: ${sub.fileName} — PDF could not be parsed (may be image-based)]`
     }
 
     return `[File: ${sub.fileName} — unsupported format for text extraction]`
