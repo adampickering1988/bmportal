@@ -341,8 +341,47 @@ Bullet points of what the candidate did well — highlight strong analytical thi
 ## Areas for Improvement
 Bullet points of what was missed or could be stronger — focus on gaps in thinking or methodology, not just "didn't mention X from the answer key."
 
+## AI Usage Likelihood: X/10
+
+Assess how likely it is that the candidate used AI (ChatGPT, Claude, etc.) to write their submission. Output a single line in this exact format:
+
+**AI Likelihood Score: X/10** — where 0 = clearly human-written under pressure, 10 = almost certainly AI-generated.
+
+Then provide 3-6 bullet points of specific evidence, citing exact phrases or patterns from their submission.
+
+**Signals suggesting AI use (raise the score):**
+- Overly polished, uniform prose throughout — no fatigue, no rushed sections
+- Generic phrasing not tied to specific data (e.g. "leverage opportunities", "robust strategies", "comprehensive analysis")
+- Em-dashes used as punctuation, em-dash + adverb patterns ("not only X — but also Y")
+- AI tells: "delve into", "moreover", "furthermore", "in conclusion", "it is important to note", "navigate the complexities", "robust", "leverage", "comprehensive", "holistic", "synergy"
+- Perfectly structured headings/subheadings throughout, consistent bullet formatting
+- Length and breadth that exceeds what a stressed human can write in 90 minutes (rough rule: > 2,500 words of polished prose is suspicious)
+- Hedging/disclaimer language unusual for a working professional ("It is worth considering...", "One could argue that...")
+- Vague recommendations without specific campaign IDs or numbers, even though they reference the data
+- US English spelling/vocabulary when the candidate is UK-based (assessment is UK)
+- Repeating the same idea in different words (AI tends to pad)
+
+**Signals suggesting genuine human work (lower the score):**
+- Specific campaign IDs (CPG-XXX-XX) cited inline with figures
+- Calculations shown with workings (e.g. £540 ÷ £1,380 = 39%)
+- Typos, casual abbreviations, sentence fragments, notes-to-self
+- Uneven depth across sections (some thorough, some rushed — humans run out of time)
+- Personal voice ("I'd recommend", "my take is", "I noticed")
+- Specific reasoning that connects multiple data points across sheets
+- Realistic length for 90 minutes (typically 1,000-2,000 words for analysis tasks)
+- Honest gaps or "I would also want to check..." statements
+
+**Important calibration:**
+- 0-2: Clearly human, possibly even rough. Typos, specific figures, uneven sections.
+- 3-4: Mostly human with possible AI polish or AI used for editing. Real reasoning visible.
+- 5-6: Mixed signals. Some sections feel AI-generated, others feel human, or candidate may have used AI to assist with structure.
+- 7-8: Likely AI-generated with some human editing/personalisation. Generic phrasing dominates.
+- 9-10: Almost certainly AI. Consistent AI tone throughout, generic, lacks specific data anchoring even when data is available.
+
+Be calibrated — most candidates will fall in the 2-5 range. Save high scores for genuinely suspicious work. Lower a score if you spot ANY of: typos, specific campaign IDs with figures, personal voice, uneven section depth.
+
 ## Hiring Recommendation
-A final 2-3 sentence recommendation on whether to proceed with this candidate, based on their overall analytical capability and potential as a Brand Manager.
+A final 2-3 sentence recommendation on whether to proceed with this candidate, based on their overall analytical capability AND your AI likelihood assessment. If AI likelihood is 7+, flag this in the recommendation.
 
 SCORING APPROACH:
 - Award marks based on the QUALITY of analysis, not exact match to answer key findings

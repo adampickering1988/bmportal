@@ -247,6 +247,12 @@ function usedOldData(c: CandidateRecord): boolean {
   return !!(c.startedAt && c.startedAt < DATA_FIX_CUTOFF)
 }
 
+function extractAiLikelihood(analysis: string | undefined): number | null {
+  if (!analysis) return null
+  const m = analysis.match(/AI Likelihood Score:\s*\*{0,2}(\d+(?:\.\d+)?)\s*\/\s*10\*{0,2}/i)
+  return m ? parseFloat(m[1]) : null
+}
+
 function extractScore(analysis: string | undefined): { score: number | null; pass: boolean | null } {
   if (!analysis) return { score: null, pass: null }
   // Look for TOTAL row in the score table: | **TOTAL** | **100** | **72** |
@@ -421,6 +427,7 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
     const isUpdating = updating === c.code
     const candidateStatus = c.status || 'active'
     const { score, pass } = extractScore(c.aiAnalysis)
+    const aiLikelihood = extractAiLikelihood(c.aiAnalysis)
 
     const isUploadingCv = uploadingCv === c.code
     const hasCv = !!c.cvUrl
@@ -488,6 +495,17 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
               <div className="text-[10px] text-[#6B7A8D] uppercase tracking-wider font-bold">AI Score</div>
               <div className={`font-black text-base ${pass ? 'text-[#1E8449]' : 'text-[#C0392B]'}`}>{score}<span className="text-[10px] font-normal text-[#6B7A8D]">/100</span></div>
               <div className={`text-[9px] font-bold uppercase tracking-wider ${pass ? 'text-[#27AE60]' : 'text-[#E74C3C]'}`}>{pass ? 'Pass' : 'Fail'}</div>
+            </div>
+          )}
+          {aiLikelihood !== null && (
+            <div className="text-center" title={`AI likelihood: ${aiLikelihood}/10 (10 = almost certainly AI-generated)`}>
+              <div className="text-[10px] text-[#6B7A8D] uppercase tracking-wider font-bold">AI Use</div>
+              <div className={`font-black text-base ${aiLikelihood >= 7 ? 'text-[#C0392B]' : aiLikelihood >= 4 ? 'text-[#D4A017]' : 'text-[#1E8449]'}`}>
+                {aiLikelihood}<span className="text-[10px] font-normal text-[#6B7A8D]">/10</span>
+              </div>
+              <div className={`text-[9px] font-bold uppercase tracking-wider ${aiLikelihood >= 7 ? 'text-[#E74C3C]' : aiLikelihood >= 4 ? 'text-[#F39C12]' : 'text-[#27AE60]'}`}>
+                {aiLikelihood >= 7 ? '⚠ High' : aiLikelihood >= 4 ? 'Mixed' : 'Human'}
+              </div>
             </div>
           )}
           <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
