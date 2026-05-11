@@ -120,9 +120,15 @@ function getAnswerKeySummary(): string {
   return `
 BRAND X ASSESSMENT — ANSWER KEY & MARKING GUIDE (100 MARKS, PASS: 65)
 
+DATA SOURCES OF TRUTH:
+- Ad Campaign Report: source of truth for per-campaign spend, sales, ACoS, impressions, clicks
+- Dashboard: source of truth for Total Revenue per SKU (includes organic + ad-attributed)
+- ACoS = Ad Spend ÷ Ad Sales (use campaign report sums)
+- TACoS = Ad Spend ÷ Total Revenue (use dashboard revenue)
+
 SECTION 1 — ACCOUNT-LEVEL ANALYSIS (15 marks):
 - BX-009 CVR 7.3% lowest by 5.4pp (2 marks)
-- BX-009 TACoS 86.0% (£1,590 spend vs £1,850 revenue) (3 marks)
+- BX-009 TACoS 43.0% (£1,590 spend vs £3,700 total revenue) — more than 2x next-highest SKU (3 marks)
 - CPG-001-02 Immune Phrase ACoS 64.2%, spend £1,040 — worst SP campaign (2 marks)
 - CPG-007-04 MensMV Broad ACoS 55.6%, 'multivitamin for dogs' visible (2 marks)
 - SD campaigns avg 53.2% ACoS vs SB/SBV 19.3% — type-level pattern (3 marks)
@@ -147,7 +153,7 @@ SECTION 4 — UNDER-INVESTED OPPORTUNITIES (15 marks):
 
 SECTION 5 — BX-009 ROOT CAUSE DIAGNOSIS (15 marks):
 - Root cause is CVR 7.3% (lowest by 5.4pp), NOT a bidding problem (3 marks)
-- Blended ACoS 54.5% (£1,590÷£2,920), TACoS 86.0% (£1,590÷£1,850) (3 marks)
+- Blended ACoS 54.5% (£1,590÷£2,920 ad sales), TACoS 43.0% (£1,590÷£3,700 total revenue) (3 marks)
 - TOS 52% with rank 18 on 62k MSV term — TOS/bid increases can't fix CVR (3 marks)
 - Pause CPG-009-02 (£560), 03 (£480), 04 (£240) = £1,280 saved, retain 01 Exact only (3 marks)
 - Flag 'turmeric gummies' wrong format, ACoS 60.0%, £192 (3 marks)
@@ -218,6 +224,9 @@ export async function POST(req: NextRequest) {
         {
           role: 'user',
           content: `You are a senior Amazon advertising assessor for Ideal Direct. You have received a candidate's assessment submission and the official answer key. Your job is to produce a professional, comprehensive analysis report.
+
+NOTE ON DATA VERSION:
+An earlier version of the spreadsheet had internal inconsistencies in the Dashboard (banner totals didn't match SKU rows; Ad Spend column didn't match Ad Campaign Report sums). Some candidates may have correctly identified these inconsistencies in their submissions — this should be CREDITED as strong analytical attention to detail, not penalised. If a candidate flags data integrity issues with specific examples, treat that as a positive signal of rigor.
 
 IMPORTANT CONTEXT ON HOW TO USE THE ANSWER KEY:
 The answer key below is a GUIDE to the quality and depth expected — it is NOT a literal checklist. Candidates do NOT need to identify the exact same findings, use the exact same figures, or reach the exact same conclusions as the answer key to score well. What matters is:
