@@ -220,6 +220,18 @@ export async function POST(req: NextRequest) {
   const listingsTexts = await Promise.all(listingSubs.map(getSubmissionContent))
   const listingsSubmissions = listingsTexts.join('\n\n---\n\n')
 
+  // Candidates sometimes put both tasks in a single file but submit it under
+  // just one task. If a task has NO submissions but the other does, treat ALL
+  // files as potentially containing content for both tasks — Claude will read
+  // them and figure out which sections are addressed where.
+  const adsHasContent = adsSubs.length > 0
+  const listingsHasContent = listingSubs.length > 0
+  const onlyOneTaskSubmitted = adsHasContent !== listingsHasContent
+  const combinedFileNote = onlyOneTaskSubmitted ? `
+NOTE — POSSIBLE COMBINED SUBMISSION:
+The candidate only submitted under one task (${adsHasContent ? 'Task 1: Advertising Analysis' : 'Task 2: Listing Quality'}). However, candidates sometimes put BOTH tasks in a single file and only upload it under one task label. Please carefully READ the attached files (especially PDFs and spreadsheets) — if they contain analysis for the other task as well, score BOTH tasks based on what you find in the file. Do not give a candidate zero on a task just because their file was tagged under the other task; assess based on the actual content.
+` : ''
+
   const answerKey = getAnswerKeySummary()
 
   // The Dashboard data was corrected on 2026-05-11 around 13:00 UTC.
@@ -270,6 +282,7 @@ Therefore when scoring this candidate:
 NOTE ON DATA VERSION:
 An earlier version of the spreadsheet had internal inconsistencies in the Dashboard (banner totals didn't match SKU rows; Ad Spend column didn't match Ad Campaign Report sums). Some candidates may have correctly identified these inconsistencies in their submissions — this should be CREDITED as strong analytical attention to detail, not penalised. If a candidate flags data integrity issues with specific examples, treat that as a positive signal of rigor.
 ${dataVersionNote}
+${combinedFileNote}
 
 IMPORTANT CONTEXT ON HOW TO USE THE ANSWER KEY:
 The answer key below is a GUIDE to the quality and depth expected — it is NOT a literal checklist. Candidates do NOT need to identify the exact same findings, use the exact same figures, or reach the exact same conclusions as the answer key to score well. What matters is:
