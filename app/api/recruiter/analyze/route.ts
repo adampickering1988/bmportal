@@ -214,6 +214,33 @@ export async function POST(req: NextRequest) {
 
   const answerKey = getAnswerKeySummary()
 
+  // The Dashboard data was corrected on 2026-05-11 around 13:00 UTC.
+  // Candidates who started before that worked with an inconsistent dashboard
+  // (banner totals didn't match SKU rows, Ad Spend per SKU didn't match
+  // Ad Campaign Report sums, BX-009 Revenue < Ad Sales, etc.). When analysing
+  // their work the AI needs to know this so it doesn't penalise correct
+  // analyses that used the campaign-level data as source of truth, and so it
+  // credits candidates who explicitly flagged the inconsistencies.
+  const DATA_FIX_CUTOFF = '2026-05-11T13:00:00.000Z'
+  const usedOldData =
+    candidate.startedAt && candidate.startedAt < DATA_FIX_CUTOFF
+
+  const dataVersionNote = usedOldData ? `
+⚠ IMPORTANT — THIS CANDIDATE WORKED WITH AN EARLIER (INCONSISTENT) DASHBOARD:
+This candidate started the assessment on ${candidate.startedAt} BEFORE the spreadsheet was corrected. The version they downloaded had real data integrity issues on the Dashboard tab:
+- Banner totals (Revenue £39,160 / Ad Spend £8,444) did NOT match the SKU row sums (£40,160 / £5,840)
+- Dashboard Ad Spend per SKU did NOT match the sum of campaigns in the Ad Campaign Report
+- Dashboard BX-009 Revenue (£1,850) was LESS than BX-009's ad-attributed sales (£2,920), which is impossible
+- The original answer key used the (impossible) BX-009 TACoS of 86%
+
+Therefore when scoring this candidate:
+1. CREDIT them generously if they explicitly noticed and flagged any of these inconsistencies — that's exceptional analytical attention
+2. If they recalculated metrics from the Ad Campaign Report as the source of truth, accept their numbers
+3. Do NOT penalise them for "missing" the 86% TACoS finding — that was based on broken data; the corrected TACoS is 43% on the new data
+4. Their analysis of campaign-level findings (cannibalisation, irrelevant search terms, opportunities) is unaffected — those came from the Ad Campaign Report and Search Term Report, which were always consistent
+` : ''
+
+
   let analysisText: string
   try {
     const client = new Anthropic({ apiKey })
@@ -227,6 +254,7 @@ export async function POST(req: NextRequest) {
 
 NOTE ON DATA VERSION:
 An earlier version of the spreadsheet had internal inconsistencies in the Dashboard (banner totals didn't match SKU rows; Ad Spend column didn't match Ad Campaign Report sums). Some candidates may have correctly identified these inconsistencies in their submissions — this should be CREDITED as strong analytical attention to detail, not penalised. If a candidate flags data integrity issues with specific examples, treat that as a positive signal of rigor.
+${dataVersionNote}
 
 IMPORTANT CONTEXT ON HOW TO USE THE ANSWER KEY:
 The answer key below is a GUIDE to the quality and depth expected — it is NOT a literal checklist. Candidates do NOT need to identify the exact same findings, use the exact same figures, or reach the exact same conclusions as the answer key to score well. What matters is:

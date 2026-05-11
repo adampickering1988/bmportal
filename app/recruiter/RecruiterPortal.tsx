@@ -241,6 +241,12 @@ async function downloadAnalysisPdf(candidateName: string, candidateEmail: string
   doc.save(`${candidateName.replace(/\s+/g, '_')}_Assessment_Analysis.pdf`)
 }
 
+// Candidates who started before this date worked with the original (inconsistent) Dashboard data
+const DATA_FIX_CUTOFF = '2026-05-11T13:00:00.000Z'
+function usedOldData(c: CandidateRecord): boolean {
+  return !!(c.startedAt && c.startedAt < DATA_FIX_CUTOFF)
+}
+
 function extractScore(analysis: string | undefined): { score: number | null; pass: boolean | null } {
   if (!analysis) return { score: null, pass: null }
   // Look for TOTAL row in the score table: | **TOTAL** | **100** | **72** |
@@ -423,7 +429,14 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
             {c.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-[#0D1B2A] text-sm">{c.name}</div>
+            <div className="font-bold text-[#0D1B2A] text-sm flex items-center gap-2">
+              {c.name}
+              {usedOldData(c) && (
+                <span title="This candidate started before the spreadsheet data was corrected on 11 May 2026" className="text-[9px] font-bold bg-[#FEF9E7] text-[#7D6608] border border-[#F39C12] px-1.5 py-0.5 rounded uppercase tracking-wider">
+                  v1 data
+                </span>
+              )}
+            </div>
             <div className="text-xs text-[#6B7A8D] truncate">{c.email}</div>
           </div>
 
