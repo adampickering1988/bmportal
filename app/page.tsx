@@ -41,6 +41,24 @@ export default function HomePage() {
             <h1 className="text-3xl font-black text-white tracking-tight">Brand Manager Recruitment Portal</h1>
             <p className="text-[#6B7A8D] text-sm mt-2 tracking-wide">Amazon Account Manager Assessment</p>
           </div>
+          {/* AI Detection Warning */}
+          <div className="bg-[#2D1515] border-2 border-[#C0392B] rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl flex-shrink-0">⚠️</div>
+              <div>
+                <div className="text-[#E74C3C] font-black text-sm uppercase tracking-wider mb-2">
+                  AI Detection Active
+                </div>
+                <p className="text-[#F5C8C0] text-sm leading-relaxed mb-2">
+                  All submissions are analysed by automated AI-detection tools that compare your work against typical AI-generated patterns and what a human can realistically produce in 90 minutes under pressure.
+                </p>
+                <p className="text-[#F5C8C0] text-sm leading-relaxed font-bold">
+                  Please do not use ChatGPT, Claude, Gemini or any other AI tool to complete these tasks. Submissions flagged as AI-generated will be rejected and you will not progress to interview, regardless of score.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-[#1A2E45] rounded-xl p-8 border border-[#243E59]">
             <h2 className="text-white font-bold text-lg mb-1">Candidate Login</h2>
             <p className="text-[#6B7A8D] text-sm mb-6">Enter the access code from your invitation email to begin.</p>

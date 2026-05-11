@@ -75,7 +75,7 @@ function buildHtml(name: string, code: string): string {
         We're looking for clear, evidence-led thinking — cite the numbers and campaign IDs throughout. There are no trick questions and no prior supplement-industry knowledge is required.
       </p>
 
-      <div style="background:#FEF9E7;border:2px solid #F39C12;border-radius:10px;padding:20px;margin:0 0 24px;">
+      <div style="background:#FEF9E7;border:2px solid #F39C12;border-radius:10px;padding:20px;margin:0 0 16px;">
         <div style="font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#7D6608;margin-bottom:12px;">⚠ Please read carefully before you log in</div>
         <ul style="font-size:14px;line-height:1.65;margin:0;padding-left:18px;color:#5D4E08;">
           <li style="margin-bottom:10px;"><strong>You have 90 minutes. The timer starts the moment you enter your access code — not when you click "submit".</strong></li>
@@ -83,6 +83,16 @@ function buildHtml(name: string, code: string): string {
           <li style="margin-bottom:10px;"><strong>When the 90 minutes are up, whatever you have already submitted will be treated as your final answer.</strong> Anything still in draft will be auto-submitted in its current state — so submit early and update if you have time, rather than leaving everything to the end.</li>
           <li>Pick a quiet 90-minute window with no interruptions. Have water, a notepad, and Excel or Google Sheets ready. Treat it like a written exam.</li>
         </ul>
+      </div>
+
+      <div style="background:#FDEDEC;border:2px solid #C0392B;border-radius:10px;padding:20px;margin:0 0 24px;">
+        <div style="font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#922B21;margin-bottom:10px;">⚠ AI Detection Active</div>
+        <p style="font-size:14px;line-height:1.65;margin:0 0 10px;color:#7B241C;">
+          All submissions are analysed by automated AI-detection tools that compare your work against typical AI-generated patterns and what a human can realistically produce in 90 minutes under pressure.
+        </p>
+        <p style="font-size:14px;line-height:1.65;margin:0;color:#7B241C;"><strong>
+          Please do not use ChatGPT, Claude, Gemini or any other AI tool to complete this assessment. Submissions flagged as AI-generated will be rejected and you will not progress to interview, regardless of score.
+        </strong></p>
       </div>
 
       <div style="background:#F4F6F8;border:2px solid #E8EBF0;border-radius:10px;padding:20px;text-align:center;margin:0 0 16px;">
