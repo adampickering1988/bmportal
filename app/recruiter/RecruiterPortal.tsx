@@ -399,12 +399,15 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
   }
 
   const sortActive = (a: CandidateRecord, b: CandidateRecord) => {
-    const aSubs = subCounts.get(a.code) || 0
-    const bSubs = subCounts.get(b.code) || 0
-    if (aSubs !== bSubs) return bSubs - aSubs               // submitted first
+    // 1. AI score (highest first) — candidates with no analysis go to bottom
     const aScore = extractScore(a.aiAnalysis).score ?? -1
     const bScore = extractScore(b.aiAnalysis).score ?? -1
-    if (aScore !== bScore) return bScore - aScore           // higher score first
+    if (aScore !== bScore) return bScore - aScore
+    // 2. Submission count (most first) — for unanalysed candidates
+    const aSubs = subCounts.get(a.code) || 0
+    const bSubs = subCounts.get(b.code) || 0
+    if (aSubs !== bSubs) return bSubs - aSubs
+    // 3. Newest first
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   }
 
