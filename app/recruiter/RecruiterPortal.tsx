@@ -510,6 +510,19 @@ function CandidatesTab({ candidates, submissions, onRefresh }: { candidates: Can
           )}
           <span className={`text-xs font-bold px-3 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
 
+          {/* Per-candidate Live Task (currently enabled for Lisa Hoskins only) */}
+          {c.code === '22D7B6' && (
+            <a
+              href="/api/files/live-task"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FFF4E5] text-[#9C5500] border border-[#FF9900] hover:bg-[#FF9900] hover:text-white transition-colors"
+              title="Open the live PPC task to screen-share during interview"
+            >
+              🎯 Live Task
+            </a>
+          )}
+
           {/* Action buttons */}
           <div className="flex items-center gap-1.5">
             {candidateStatus !== 'interview' && (
@@ -832,7 +845,6 @@ function ResourcesTab() {
   const files = [
     { label:'Answer Key', sub:'BrandX_Answer_Key_CONFIDENTIAL.docx', icon:'🔑', href:'/api/files/answer-key', note:'Marking guide · 100 marks · 9 sections' },
     { label:'Listing Issues Reference', sub:'BrandX_Listing_Issues_Reference.docx', icon:'📋', href:'/api/files/listing-issues', note:'Per-SKU issue log · BX-009 · BX-011 · BX-012' },
-    { label:'Live Task — Memory Foam Pillow', sub:'Interview live task · open in new tab', icon:'🎯', href:'/api/files/live-task', note:'Auto + Exact + Phrase campaigns with placement breakdowns · screen-share during interview' },
   ]
   return (
     <div className="max-w-2xl mx-auto space-y-4">
