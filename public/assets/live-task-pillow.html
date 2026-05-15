@@ -8,7 +8,6 @@
   :root {
     --bg:#F4F6F8;--card:#fff;--ink:#0F1111;--muted:#5A6B7D;--line:#E8EBF0;
     --amzOrange:#FF9900;--amzBlue:#232F3E;--amzLight:#FBFBFB;
-    --green:#1E8449;--red:#C0392B;--amber:#D4A017;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.45}
@@ -17,7 +16,7 @@
   .topbar .nav{display:flex;gap:18px;font-size:12px;color:#D7E0E8}
   .topbar .nav a{color:#D7E0E8;text-decoration:none}
   .topbar .nav a.active{color:#fff;border-bottom:2px solid var(--amzOrange);padding-bottom:8px}
-  .container{max-width:1280px;margin:0 auto;padding:24px}
+  .container{max-width:1320px;margin:0 auto;padding:24px}
   .banner{background:linear-gradient(180deg,#fff,#FBFBFB);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:24px}
   .banner h1{margin:0 0 6px;font-size:20px}
   .banner .meta{color:var(--muted);font-size:12px}
@@ -33,7 +32,6 @@
   .pill.state{background:#EAF6E9;color:#1E8449;border:1px solid #27AE60}
   .card .head h2{margin:0;font-size:15px;font-weight:700}
   .card .head .sub{color:var(--muted);font-size:12px;margin-top:2px}
-  .card .body{padding:0}
   .grid-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--line)}
   .grid-meta div{padding:10px 16px;border-right:1px solid var(--line)}
   .grid-meta div:last-child{border-right:none}
@@ -49,13 +47,11 @@
   tr.total{background:#FBFBFB;font-weight:700}
   tr.total td{border-top:2px solid var(--line)}
   .key{font-weight:700;color:var(--ink)}
-  .good{color:var(--green);font-weight:700}
-  .bad{color:var(--red);font-weight:700}
-  .neutral{color:var(--amber);font-weight:700}
   .sub-section{padding:14px 18px;background:#FBFBFB;border-bottom:1px solid var(--line);border-top:1px solid var(--line)}
   .sub-section h3{margin:0;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
   .footer{text-align:center;padding:20px;color:var(--muted);font-size:11px}
   .tag-strategy{display:inline-block;font-size:9px;padding:1px 6px;border-radius:8px;background:#F4F6F8;color:var(--muted);margin-left:6px;font-weight:600}
+  .sugg{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -91,10 +87,10 @@
       <div class="kpi"><div class="lbl">Impressions</div><div class="val">913,000</div></div>
       <div class="kpi"><div class="lbl">Clicks</div><div class="val">10,600</div></div>
       <div class="kpi"><div class="lbl">Spend</div><div class="val">£6,908</div></div>
-      <div class="kpi"><div class="lbl">Sales</div><div class="val">£27,580</div></div>
-      <div class="kpi"><div class="lbl">Orders</div><div class="val">601</div></div>
-      <div class="kpi"><div class="lbl">ACoS</div><div class="val">25.04%</div></div>
-      <div class="kpi"><div class="lbl">ROAS</div><div class="val">3.99x</div></div>
+      <div class="kpi"><div class="lbl">Sales</div><div class="val">£28,040</div></div>
+      <div class="kpi"><div class="lbl">Orders</div><div class="val">614</div></div>
+      <div class="kpi"><div class="lbl">ACoS</div><div class="val">24.64%</div></div>
+      <div class="kpi"><div class="lbl">ROAS</div><div class="val">4.06x</div></div>
     </div>
   </div>
 
@@ -114,8 +110,8 @@
     <div class="grid-meta">
       <div><div class="l">Impressions</div><div class="v">815,000</div></div>
       <div><div class="l">Spend</div><div class="v">£4,472</div></div>
-      <div><div class="l">Sales</div><div class="v">£16,100</div></div>
-      <div><div class="l">ACoS / ROAS</div><div class="v">27.78% · 3.60x</div></div>
+      <div><div class="l">Sales</div><div class="v">£16,560</div></div>
+      <div><div class="l">ACoS / ROAS</div><div class="v">27.01% · 3.70x</div></div>
     </div>
 
     <div class="sub-section"><h3>Targeting groups</h3></div>
@@ -124,6 +120,7 @@
         <tr>
           <th>Targeting</th>
           <th class="num">Bid</th>
+          <th class="num">Suggested bid</th>
           <th class="num">Impressions</th>
           <th class="num">Clicks</th>
           <th class="num">CTR</th>
@@ -139,67 +136,72 @@
         <tr>
           <td><span class="key">Close Match</span></td>
           <td class="num">£1.00</td>
+          <td class="num"><span class="sugg">£0.70 – £0.95</span></td>
           <td class="num">320,000</td>
           <td class="num">4,800</td>
           <td class="num">1.50%</td>
           <td class="num">£2,640</td>
           <td class="num">£11,200</td>
           <td class="num">280</td>
-          <td class="num good">23.57%</td>
-          <td class="num good">4.24x</td>
+          <td class="num">23.57%</td>
+          <td class="num">4.24x</td>
           <td class="num">5.83%</td>
         </tr>
         <tr>
           <td><span class="key">Loose Match</span></td>
           <td class="num">£0.75</td>
+          <td class="num"><span class="sugg">£0.55 – £0.80</span></td>
           <td class="num">180,000</td>
           <td class="num">1,440</td>
           <td class="num">0.80%</td>
           <td class="num">£648</td>
           <td class="num">£1,520</td>
           <td class="num">38</td>
-          <td class="num neutral">42.63%</td>
-          <td class="num neutral">2.35x</td>
+          <td class="num">42.63%</td>
+          <td class="num">2.35x</td>
           <td class="num">2.64%</td>
         </tr>
         <tr>
           <td><span class="key">Substitutes</span> <span class="tag-strategy">competitor ASINs</span></td>
           <td class="num">£0.90</td>
+          <td class="num"><span class="sugg">£1.20 – £1.60</span></td>
           <td class="num">95,000</td>
           <td class="num">1,140</td>
           <td class="num">1.20%</td>
           <td class="num">£864</td>
           <td class="num">£3,200</td>
           <td class="num">80</td>
-          <td class="num good">27.00%</td>
-          <td class="num good">3.70x</td>
+          <td class="num">27.00%</td>
+          <td class="num">3.70x</td>
           <td class="num">7.02%</td>
         </tr>
         <tr>
           <td><span class="key">Complements</span> <span class="tag-strategy">attached-product ASINs</span></td>
           <td class="num">£0.60</td>
+          <td class="num"><span class="sugg">£0.40 – £0.65</span></td>
           <td class="num">220,000</td>
           <td class="num">660</td>
           <td class="num">0.30%</td>
           <td class="num">£320</td>
-          <td class="num">£180</td>
-          <td class="num">4</td>
-          <td class="num bad">177.78%</td>
-          <td class="num bad">0.56x</td>
-          <td class="num">0.61%</td>
+          <td class="num">£640</td>
+          <td class="num">16</td>
+          <td class="num">50.00%</td>
+          <td class="num">2.00x</td>
+          <td class="num">2.42%</td>
         </tr>
         <tr class="total">
           <td>TOTAL</td>
+          <td></td>
           <td></td>
           <td class="num">815,000</td>
           <td class="num">8,040</td>
           <td class="num">0.99%</td>
           <td class="num">£4,472</td>
-          <td class="num">£16,100</td>
-          <td class="num">402</td>
-          <td class="num">27.78%</td>
-          <td class="num">3.60x</td>
-          <td class="num">5.00%</td>
+          <td class="num">£16,560</td>
+          <td class="num">414</td>
+          <td class="num">27.01%</td>
+          <td class="num">3.70x</td>
+          <td class="num">5.15%</td>
         </tr>
       </tbody>
     </table>
@@ -226,9 +228,9 @@
           <td class="num">380,000</td>
           <td class="num">5,320</td>
           <td class="num">£2,820</td>
-          <td class="num">£12,800</td>
-          <td class="num good">22.03%</td>
-          <td class="num">6.02%</td>
+          <td class="num">£13,140</td>
+          <td class="num">21.46%</td>
+          <td class="num">6.18%</td>
           <td class="num">38%</td>
         </tr>
         <tr>
@@ -237,9 +239,9 @@
           <td class="num">290,000</td>
           <td class="num">1,840</td>
           <td class="num">£1,180</td>
-          <td class="num">£2,120</td>
-          <td class="num neutral">55.66%</td>
-          <td class="num">3.04%</td>
+          <td class="num">£2,260</td>
+          <td class="num">52.21%</td>
+          <td class="num">3.20%</td>
           <td class="num">12%</td>
         </tr>
         <tr>
@@ -248,8 +250,8 @@
           <td class="num">145,000</td>
           <td class="num">880</td>
           <td class="num">£472</td>
-          <td class="num">£1,180</td>
-          <td class="num neutral">40.00%</td>
+          <td class="num">£1,160</td>
+          <td class="num">40.69%</td>
           <td class="num">5.45%</td>
           <td class="num">8%</td>
         </tr>
@@ -258,17 +260,17 @@
 
     <div class="sub-section"><h3>Top customer search terms (last 30 days)</h3></div>
     <table>
-      <thead><tr><th>Search term</th><th>Matched targeting</th><th class="num">Clicks</th><th class="num">Spend</th><th class="num">Sales</th><th class="num">ACoS</th></tr></thead>
+      <thead><tr><th>Search term</th><th>Matched targeting</th><th class="num">Clicks</th><th class="num">Spend</th><th class="num">Sales</th><th class="num">ACoS</th><th class="num">Orders</th></tr></thead>
       <tbody>
-        <tr><td>cervical pillow for neck pain</td><td>Close Match</td><td class="num">620</td><td class="num">£540</td><td class="num">£2,760</td><td class="num good">19.6%</td></tr>
-        <tr><td>cervical memory foam pillow</td><td>Close Match</td><td class="num">920</td><td class="num">£842</td><td class="num">£3,840</td><td class="num good">21.9%</td></tr>
-        <tr><td>brightfoam cervical pillow</td><td>Close Match</td><td class="num">240</td><td class="num">£186</td><td class="num">£1,180</td><td class="num good">15.8%</td></tr>
-        <tr><td>cervical pillow side sleeper</td><td>Close Match</td><td class="num">220</td><td class="num">£186</td><td class="num">£820</td><td class="num neutral">22.7%</td></tr>
-        <tr><td>orthopedic memory foam pillow</td><td>Loose Match</td><td class="num">340</td><td class="num">£268</td><td class="num">£440</td><td class="num bad">60.9%</td></tr>
-        <tr><td>cooling pillow memory foam</td><td>Loose Match</td><td class="num">240</td><td class="num">£198</td><td class="num">£560</td><td class="num neutral">35.4%</td></tr>
-        <tr><td>pillow for stomach sleepers</td><td>Loose Match</td><td class="num">180</td><td class="num">£142</td><td class="num">£0</td><td class="num bad">—</td></tr>
-        <tr><td>pillowcase set king</td><td>Complements</td><td class="num">220</td><td class="num">£132</td><td class="num">£0</td><td class="num bad">—</td></tr>
-        <tr><td>weighted blanket queen</td><td>Complements</td><td class="num">180</td><td class="num">£110</td><td class="num">£0</td><td class="num bad">—</td></tr>
+        <tr><td>cervical pillow for neck pain</td><td>Close Match</td><td class="num">620</td><td class="num">£540</td><td class="num">£2,760</td><td class="num">19.57%</td><td class="num">69</td></tr>
+        <tr><td>cervical memory foam pillow</td><td>Close Match</td><td class="num">920</td><td class="num">£842</td><td class="num">£3,840</td><td class="num">21.93%</td><td class="num">96</td></tr>
+        <tr><td>brightfoam cervical pillow</td><td>Close Match</td><td class="num">240</td><td class="num">£186</td><td class="num">£1,180</td><td class="num">15.76%</td><td class="num">30</td></tr>
+        <tr><td>cervical pillow side sleeper</td><td>Close Match</td><td class="num">220</td><td class="num">£186</td><td class="num">£820</td><td class="num">22.68%</td><td class="num">21</td></tr>
+        <tr><td>orthopedic memory foam pillow</td><td>Loose Match</td><td class="num">340</td><td class="num">£268</td><td class="num">£560</td><td class="num">47.86%</td><td class="num">14</td></tr>
+        <tr><td>cooling memory foam pillow</td><td>Loose Match</td><td class="num">240</td><td class="num">£198</td><td class="num">£540</td><td class="num">36.67%</td><td class="num">14</td></tr>
+        <tr><td>pillow for back pain</td><td>Loose Match</td><td class="num">180</td><td class="num">£142</td><td class="num">£260</td><td class="num">54.62%</td><td class="num">7</td></tr>
+        <tr><td>memory foam topper queen</td><td>Complements</td><td class="num">220</td><td class="num">£132</td><td class="num">£280</td><td class="num">47.14%</td><td class="num">7</td></tr>
+        <tr><td>pillow protector king</td><td>Complements</td><td class="num">180</td><td class="num">£110</td><td class="num">£200</td><td class="num">55.00%</td><td class="num">5</td></tr>
       </tbody>
     </table>
   </div>
@@ -299,6 +301,7 @@
         <tr>
           <th>Keyword</th>
           <th class="num">Bid</th>
+          <th class="num">Suggested bid</th>
           <th class="num">Impressions</th>
           <th class="num">Clicks</th>
           <th class="num">CTR</th>
@@ -313,41 +316,44 @@
         <tr>
           <td><span class="key">cervical memory foam pillow</span></td>
           <td class="num">£1.40</td>
+          <td class="num"><span class="sugg">£0.62 – £0.88</span></td>
           <td class="num">42,000</td>
           <td class="num">1,260</td>
           <td class="num">3.00%</td>
           <td class="num">£1,460</td>
           <td class="num">£7,160</td>
-          <td class="num good">20.39%</td>
-          <td class="num good">4.91x</td>
-          <td class="num good">68%</td>
+          <td class="num">20.39%</td>
+          <td class="num">4.91x</td>
+          <td class="num">68%</td>
         </tr>
         <tr>
           <td><span class="key">brightfoam pillow</span> <span class="tag-strategy">brand term</span></td>
           <td class="num">£0.95</td>
+          <td class="num"><span class="sugg">£0.30 – £0.50</span></td>
           <td class="num">18,000</td>
           <td class="num">540</td>
           <td class="num">3.00%</td>
           <td class="num">£216</td>
           <td class="num">£1,920</td>
-          <td class="num good">11.25%</td>
-          <td class="num good">8.89x</td>
-          <td class="num neutral">42%</td>
+          <td class="num">11.25%</td>
+          <td class="num">8.89x</td>
+          <td class="num">42%</td>
         </tr>
         <tr>
           <td><span class="key">memory foam pillow neck pain</span></td>
           <td class="num">£1.10</td>
+          <td class="num"><span class="sugg">£0.85 – £1.30</span></td>
           <td class="num">38,000</td>
           <td class="num">760</td>
           <td class="num">2.00%</td>
           <td class="num">£760</td>
           <td class="num">£2,400</td>
-          <td class="num neutral">31.67%</td>
-          <td class="num neutral">3.16x</td>
-          <td class="num neutral">35%</td>
+          <td class="num">31.67%</td>
+          <td class="num">3.16x</td>
+          <td class="num">35%</td>
         </tr>
         <tr class="total">
-          <td>TOTAL</td><td></td>
+          <td>TOTAL</td><td></td><td></td>
           <td class="num">98,000</td>
           <td class="num">2,560</td>
           <td class="num">2.61%</td>
@@ -364,9 +370,9 @@
     <table>
       <thead><tr><th>Placement</th><th class="num">Bid adjustment</th><th class="num">Impressions</th><th class="num">Spend</th><th class="num">Sales</th><th class="num">ACoS</th><th class="num">CVR</th></tr></thead>
       <tbody>
-        <tr><td><span class="key">Top of Search</span></td><td class="num">+25%</td><td class="num">52,000</td><td class="num">£1,400</td><td class="num">£8,200</td><td class="num good">17.07%</td><td class="num">9.5%</td></tr>
-        <tr><td><span class="key">Rest of Search</span></td><td class="num">+30%</td><td class="num">32,000</td><td class="num">£820</td><td class="num">£2,160</td><td class="num neutral">37.96%</td><td class="num">4.2%</td></tr>
-        <tr><td><span class="key">Product Pages</span></td><td class="num">0%</td><td class="num">14,000</td><td class="num">£216</td><td class="num">£1,120</td><td class="num good">19.29%</td><td class="num">8.0%</td></tr>
+        <tr><td><span class="key">Top of Search</span></td><td class="num">+25%</td><td class="num">52,000</td><td class="num">£1,400</td><td class="num">£8,200</td><td class="num">17.07%</td><td class="num">9.5%</td></tr>
+        <tr><td><span class="key">Rest of Search</span></td><td class="num">+30%</td><td class="num">32,000</td><td class="num">£820</td><td class="num">£2,160</td><td class="num">37.96%</td><td class="num">4.2%</td></tr>
+        <tr><td><span class="key">Product Pages</span></td><td class="num">0%</td><td class="num">14,000</td><td class="num">£216</td><td class="num">£1,120</td><td class="num">19.29%</td><td class="num">8.0%</td></tr>
       </tbody>
     </table>
   </div>
