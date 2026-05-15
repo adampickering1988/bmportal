@@ -832,6 +832,7 @@ function ResourcesTab() {
   const files = [
     { label:'Answer Key', sub:'BrandX_Answer_Key_CONFIDENTIAL.docx', icon:'🔑', href:'/api/files/answer-key', note:'Marking guide · 100 marks · 9 sections' },
     { label:'Listing Issues Reference', sub:'BrandX_Listing_Issues_Reference.docx', icon:'📋', href:'/api/files/listing-issues', note:'Per-SKU issue log · BX-009 · BX-011 · BX-012' },
+    { label:'Live Task — Memory Foam Pillow', sub:'Interview live task · open in new tab', icon:'🎯', href:'/api/files/live-task', note:'Auto + Exact + Phrase campaigns with placement breakdowns · screen-share during interview' },
   ]
   return (
     <div className="max-w-2xl mx-auto space-y-4">
