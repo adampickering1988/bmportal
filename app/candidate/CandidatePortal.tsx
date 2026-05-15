@@ -26,7 +26,7 @@ export default function CandidatePortal({
   submissions: Submission[]
   timer: TimerState
 }) {
-  const [activeTab, setActiveTab] = useState<'instructions' | 'listings' | 'data' | 'submit'>('instructions')
+  const [activeTab, setActiveTab] = useState<'instructions' | 'listings' | 'data' | 'submit' | 'liveTask'>('instructions')
   const [secondsRemaining, setSecondsRemaining] = useState(initialTimer.secondsRemaining)
   const [expired, setExpired] = useState(initialTimer.expired)
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
@@ -34,6 +34,10 @@ export default function CandidatePortal({
 
   const hasAds = submissions.some(s => s.task === 'ads')
   const hasListings = submissions.some(s => s.task === 'listings')
+
+  // Candidates enabled for the live-interview task (shown only to them)
+  const LIVE_TASK_CODES = ['22D7B6'] // Lisa Hoskins
+  const showLiveTask = LIVE_TASK_CODES.includes((candidate.code || '').toUpperCase())
 
   // Local 1-second tick for the visible countdown.
   useEffect(() => {
@@ -117,6 +121,7 @@ export default function CandidatePortal({
               { id: 'listings',     label: '🛒 Product Listings' },
               { id: 'data',         label: '📊 Performance Data' },
               { id: 'submit',       label: `✉️ Submit Response${hasAds && hasListings ? ' ✓' : ''}` },
+              ...(showLiveTask ? [{ id: 'liveTask', label: '🎯 Interview Task' }] : []),
             ].map(tab => (
               <button
                 key={tab.id}
@@ -158,7 +163,34 @@ export default function CandidatePortal({
             onRefresh={() => router.refresh()}
           />
         </div>
+        {showLiveTask && (
+          <div className={activeTab === 'liveTask' ? '' : 'hidden'}>
+            <LiveTaskTab />
+          </div>
+        )}
       </main>
+    </div>
+  )
+}
+
+// ── Live Task Tab ────────────────────────────────────────────────────────────
+function LiveTaskTab() {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#E8EBF0] p-5">
+        <div className="text-[10px] font-bold tracking-widest text-[#C0392B] uppercase mb-1">Interview live task</div>
+        <h2 className="font-black text-[#0D1B2A] text-lg mb-1">BrightFoam — Amazon Campaign Manager</h2>
+        <p className="text-[13px] text-[#6B7A8D]">
+          You'll work through this together with the recruiter during your live interview. Please share your screen showing this tab when the interview starts. Take a moment to scan the data, but don't worry about preparing answers in advance — we want your live thinking.
+        </p>
+      </div>
+      <div className="bg-white rounded-lg border border-[#E8EBF0] overflow-hidden" style={{ height: 'calc(100vh - 280px)', minHeight: '700px' }}>
+        <iframe
+          src="/api/candidate/live-task"
+          className="w-full h-full border-none"
+          title="BrightFoam Campaign Manager Live Task"
+        />
+      </div>
     </div>
   )
 }
